@@ -306,6 +306,57 @@ def build_regcards(xlsx_bytes, only_main=True):
 
 # ── UI ────────────────────────────────────────────────────────────────────
 
+# ── Password gate ─────────────────────────────────────────────────────────
+APP_USER = "tachaupttt"
+APP_PASS = "12345689"
+
+if "auth_ok" not in st.session_state:
+    st.session_state.auth_ok = False
+
+def _check_login():
+    u = st.session_state.get("login_user", "")
+    p = st.session_state.get("login_pass", "")
+    if u == APP_USER and p == APP_PASS:
+        st.session_state.auth_ok = True
+        st.session_state.login_error = False
+    else:
+        st.session_state.login_error = True
+
+if not st.session_state.auth_ok:
+    st.markdown("""
+    <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        .block-container {padding-top: 3rem; max-width: 440px;}
+        .login-box {
+            background: linear-gradient(135deg, #0f3460, #16213e);
+            border-radius: 18px; padding: 2rem 1.75rem; margin-bottom: 1.5rem;
+            text-align: center; box-shadow: 0 8px 28px rgba(15,52,96,0.35);
+        }
+        .login-box .lb-logo {font-size: 2.6rem;}
+        .login-box h2 {color: #fff; font-size: 1.35rem; font-weight: 700; margin: 0.5rem 0 0.25rem;}
+        .login-box p {color: rgba(255,255,255,0.65); font-size: 0.85rem; margin: 0;}
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="login-box">
+        <div class="lb-logo">🛎️</div>
+        <h2>Hotel Guest Processor</h2>
+        <p>Vui lòng đăng nhập để tiếp tục</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.text_input("👤 Tên đăng nhập", key="login_user", placeholder="Nhập tên đăng nhập")
+    st.text_input("🔒 Mật khẩu", key="login_pass", type="password", placeholder="Nhập mật khẩu")
+    st.button("Đăng nhập →", type="primary", use_container_width=True, on_click=_check_login)
+
+    if st.session_state.get("login_error"):
+        st.error("❌ Tên đăng nhập hoặc mật khẩu không đúng!")
+
+    st.stop()
+
+
 # Custom CSS
 st.markdown("""
 <style>
