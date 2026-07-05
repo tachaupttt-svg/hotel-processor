@@ -327,15 +327,16 @@ if not st.session_state.auth_ok:
     <style>
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
-        .block-container {padding-top: 3rem; max-width: 440px;}
-        .login-box {
-            background: linear-gradient(135deg, #0f3460, #16213e);
-            border-radius: 18px; padding: 2rem 1.75rem; margin-bottom: 1.5rem;
-            text-align: center; box-shadow: 0 8px 28px rgba(15,52,96,0.35);
-        }
+        header[data-testid="stHeader"] {background: transparent;}
+        .stApp {background: #fbfbfa;}
+        .block-container {padding-top: 5rem; max-width: 380px;}
+        .login-box {text-align: center; padding: 1rem 0 1.5rem;}
         .login-box .lb-logo {font-size: 2.6rem;}
-        .login-box h2 {color: #fff; font-size: 1.35rem; font-weight: 700; margin: 0.5rem 0 0.25rem;}
-        .login-box p {color: rgba(255,255,255,0.65); font-size: 0.85rem; margin: 0;}
+        .login-box h2 {color: #1a1a1a; font-size: 1.3rem; font-weight: 700; margin: 0.6rem 0 0.3rem; letter-spacing: -0.02em;}
+        .login-box p {color: #9b9b9b; font-size: 0.85rem; margin: 0;}
+        .stTextInput input {border-radius: 8px !important; border-color: #e4e4e4 !important;}
+        .stButton button[kind="primary"] {background: #1a1a1a; border-color: #1a1a1a; color: #fff; border-radius: 8px; font-weight: 600;}
+        .stButton button[kind="primary"]:hover {background: #333; border-color: #333;}
     </style>
     """, unsafe_allow_html=True)
 
@@ -357,141 +358,94 @@ if not st.session_state.auth_ok:
     st.stop()
 
 
-# Custom CSS
+# Custom CSS — Minimalist white (Notion/Linear style)
 st.markdown("""
 <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    .block-container {padding-top: 2.5rem; padding-bottom: 2rem; max-width: 820px;}
+    header[data-testid="stHeader"] {background: transparent;}
+    .stApp {background: #fbfbfa;}
+    .block-container {padding-top: 3rem; padding-bottom: 3rem; max-width: 720px;}
     .app-header {
-        position: relative; overflow: hidden;
-        background: linear-gradient(135deg, #0f3460, #16213e, #1a1a2e, #0f3460);
-        background-size: 300% 300%;
-        animation: gradientShift 12s ease infinite;
-        border-radius: 18px; padding: 1.75rem 2rem; margin-bottom: 1.75rem;
-        box-shadow: 0 8px 28px rgba(15,52,96,0.35);
+        margin-bottom: 2.5rem; padding-bottom: 1.5rem;
+        border-bottom: 1px solid #ececec;
     }
-    @keyframes gradientShift {
-        0% {background-position: 0% 50%;}
-        50% {background-position: 100% 50%;}
-        100% {background-position: 0% 50%;}
+    .greet-row {
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 8px;
     }
-    .header-glow {
-        position: absolute; top: -60%; right: -20%;
-        width: 300px; height: 300px; border-radius: 50%;
-        background: radial-gradient(circle, rgba(96,165,250,0.25) 0%, transparent 70%);
-        animation: floatGlow 8s ease-in-out infinite;
+    .greet-text {
+        font-size: 1.5rem; font-weight: 650; color: #1a1a1a;
+        letter-spacing: -0.02em; margin: 0;
+        animation: fadeIn 0.5s ease both;
     }
-    @keyframes floatGlow {
-        0%,100% {transform: translate(0,0) scale(1);}
-        50% {transform: translate(-30px,20px) scale(1.2);}
+    .greet-emoji {margin-right: 6px;}
+    .clock-text {
+        font-size: 0.85rem; color: #9b9b9b; font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        animation: fadeIn 0.5s ease 0.1s both;
     }
-    .header-content {position: relative; z-index: 1; text-align: center;}
-    .welcome-line {
-        display: flex; align-items: center; justify-content: center;
-        gap: 10px; margin-bottom: 10px;
+    #live-clock {color: #6b6b6b; font-weight: 600;}
+    @keyframes fadeIn {from {opacity: 0; transform: translateY(6px);} to {opacity: 1; transform: translateY(0);}}
+    .section-label {
+        font-size: 0.7rem; font-weight: 600; color: #9b9b9b;
+        text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem;
     }
-    .wave {
-        display: inline-block; font-size: 1.8rem;
-        animation: wave 2.2s ease-in-out infinite;
-        transform-origin: 70% 70%;
-    }
-    @keyframes wave {
-        0%,60%,100% {transform: rotate(0deg);}
-        10% {transform: rotate(14deg);}
-        20% {transform: rotate(-8deg);}
-        30% {transform: rotate(14deg);}
-        40% {transform: rotate(-4deg);}
-        50% {transform: rotate(10deg);}
-    }
-    .typing {
-        color: #7dd3fc; font-size: 1.7rem; font-weight: 700;
-        overflow: hidden; white-space: nowrap;
-        border-right: 3px solid #7dd3fc;
-        width: 0; animation: typing 2s steps(24, end) forwards, blink 0.8s step-end infinite;
-    }
-    @keyframes typing {from {width: 0;} to {width: 100%;}}
-    @keyframes blink {50% {border-color: transparent;}}
-    .app-header h1 {
-        color: #ffffff; font-size: 1.6rem; font-weight: 700;
-        margin: 0; display: inline-flex; align-items: center; gap: 12px; letter-spacing: -0.5px;
-        animation: slideUp 0.6s ease 0.3s both;
-    }
-    @keyframes slideUp {from {opacity: 0; transform: translateY(12px);} to {opacity: 1; transform: translateY(0);}}
-    .app-header p {
-        color: rgba(255,255,255,0.7); margin: 6px 0 0 0; font-size: 0.9rem;
-        animation: slideUp 0.6s ease 0.5s both;
-    }
-    .app-logo {animation: bellRing 3s ease-in-out infinite;}
-    @keyframes bellRing {
-        0%,50%,100% {transform: rotate(0deg);}
-        5% {transform: rotate(12deg);} 10% {transform: rotate(-10deg);}
-        15% {transform: rotate(8deg);} 20% {transform: rotate(-6deg);}
-        25% {transform: rotate(0deg);}
-    }
-    .clock-badge {
-        display: inline-block; margin-top: 14px;
-        background: rgba(255,255,255,0.12); backdrop-filter: blur(6px);
-        color: rgba(255,255,255,0.92); font-size: 1.05rem; font-weight: 600;
-        padding: 9px 22px; border-radius: 24px;
-        border: 1px solid rgba(255,255,255,0.15);
-        animation: slideUp 0.6s ease 0.7s both;
-    }
-    #live-clock {font-variant-numeric: tabular-nums; font-weight: 700; color: #7dd3fc;}
     .menu-card {
-        border-radius: 16px; padding: 1.5rem 1.4rem; margin-bottom: 0.75rem;
-        border: 1.5px solid #e2e8f0; background: #ffffff;
-        transition: all 0.25s ease; cursor: default; min-height: 168px;
-        position: relative; overflow: hidden;
+        border-radius: 12px; padding: 1.5rem 1.4rem; margin-bottom: 0.6rem;
+        border: 1px solid #ececec; background: #ffffff;
+        transition: all 0.18s ease; min-height: 150px;
+        animation: fadeIn 0.5s ease 0.15s both;
     }
     .menu-card:hover {
-        transform: translateY(-4px); box-shadow: 0 12px 28px rgba(15,52,96,0.15);
-        border-color: #0f3460;
+        border-color: #d4d4d4; box-shadow: 0 2px 12px rgba(0,0,0,0.04);
     }
-    .menu-card::before {
-        content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
-    }
-    .menu-blue::before {background: linear-gradient(90deg, #0f3460, #3b82f6);}
-    .menu-green::before {background: linear-gradient(90deg, #16a34a, #4ade80);}
-    .menu-icon {
-        font-size: 2.4rem; margin-bottom: 0.6rem; display: inline-block;
-        animation: menuFloat 3s ease-in-out infinite;
-    }
-    @keyframes menuFloat {0%,100% {transform: translateY(0);} 50% {transform: translateY(-6px);}}
-    .menu-title {font-size: 1.1rem; font-weight: 700; color: #0f3460; margin-bottom: 0.4rem;}
-    .menu-desc {font-size: 0.82rem; color: #64748b; line-height: 1.5;}
-    .app-logo {
-        width: 46px; height: 46px; background: rgba(255,255,255,0.12);
-        border-radius: 12px; display: inline-flex; align-items: center;
-        justify-content: center; font-size: 1.5rem;
-    }
-    .section-label {
-        font-size: 0.72rem; font-weight: 700; color: #64748b;
-        text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 0.5rem;
-    }
+    .menu-icon {font-size: 1.9rem; margin-bottom: 0.7rem; display: block;}
+    .menu-title {font-size: 1.02rem; font-weight: 650; color: #1a1a1a; margin-bottom: 0.35rem; letter-spacing: -0.01em;}
+    .menu-desc {font-size: 0.82rem; color: #8b8b8b; line-height: 1.55;}
     div[data-testid="stFileUploader"] {
-        border: 1.5px dashed #cbd5e1; border-radius: 12px;
-        padding: 0.5rem; background: #f8fafc;
+        border: 1px dashed #dcdcdc; border-radius: 10px;
+        padding: 0.4rem; background: #fcfcfc;
     }
-    .stButton button {border-radius: 10px; font-weight: 600; padding: 0.7rem;}
-    .stDownloadButton button {border-radius: 10px; font-weight: 700; padding: 0.85rem;}
+    .stTextInput input, .stNumberInput input {
+        border-radius: 8px !important; border-color: #e4e4e4 !important;
+    }
+    .stButton button {
+        border-radius: 8px; font-weight: 550; padding: 0.6rem;
+        border: 1px solid #e4e4e4; transition: all 0.15s ease;
+    }
+    .stButton button:hover {border-color: #b4b4b4; background: #fafafa;}
+    .stButton button[kind="primary"] {
+        background: #1a1a1a; border-color: #1a1a1a; color: #fff;
+    }
+    .stButton button[kind="primary"]:hover {background: #333; border-color: #333;}
+    .stDownloadButton button {
+        border-radius: 8px; font-weight: 600; padding: 0.75rem;
+        background: #1a1a1a; border-color: #1a1a1a; color: #fff;
+    }
+    .stDownloadButton button:hover {background: #333;}
     div[data-testid="stMetric"] {
-        background: #f8fafc; border: 1px solid #e2e8f0;
-        border-radius: 12px; padding: 0.9rem 0.5rem; text-align: center;
+        background: #ffffff; border: 1px solid #ececec;
+        border-radius: 10px; padding: 0.85rem 0.5rem; text-align: center;
     }
-    div[data-testid="stMetricValue"] {color: #0f3460; font-weight: 700;}
+    div[data-testid="stMetricValue"] {color: #1a1a1a; font-weight: 700; font-size: 1.4rem;}
+    div[data-testid="stMetricLabel"] {color: #9b9b9b;}
+    .login-box {text-align: center; padding: 2rem 0 1rem;}
+    .login-box .lb-logo {font-size: 2.4rem;}
+    .login-box h2 {color: #1a1a1a; font-size: 1.3rem; font-weight: 700; margin: 0.6rem 0 0.25rem; letter-spacing: -0.02em;}
+    .login-box p {color: #9b9b9b; font-size: 0.85rem; margin: 0;}
 </style>
 """, unsafe_allow_html=True)
 
-# Animated welcome header
+# Minimalist welcome header (greeting + clock only, no title)
 _now = datetime.datetime.now()
 _hour = _now.hour
 if _hour < 11:
-    _greet, _emoji = "Chào buổi sáng", "🌅"
+    _greet, _emoji = "Chào buổi sáng", "☀️"
 elif _hour < 14:
     _greet, _emoji = "Chào buổi trưa", "☀️"
 elif _hour < 18:
-    _greet, _emoji = "Chào buổi chiều", "🌤️"
+    _greet, _emoji = "Chào buổi chiều", "🌆"
 else:
     _greet, _emoji = "Chào buổi tối", "🌙"
 
@@ -501,14 +455,9 @@ _datestr = f"{_wd}, {_now.day:02d}/{_now.month:02d}/{_now.year}"
 
 st.markdown(f"""
 <div class="app-header">
-    <div class="header-glow"></div>
-    <div class="header-content">
-        <div class="welcome-line">
-            <span class="wave">{_emoji}</span>
-            <span class="typing">{_greet}, Ta Châu!</span>
-        </div>
-        <h1><span class="app-logo">🛎️</span> Hotel Guest Processor</h1>
-        <div class="clock-badge">📅 {_datestr}&nbsp;&nbsp;·&nbsp;&nbsp;<span id="live-clock">{_now.strftime('%H:%M:%S')}</span></div>
+    <div class="greet-row">
+        <p class="greet-text"><span class="greet-emoji">{_emoji}</span>{_greet}, Ta Châu</p>
+        <span class="clock-text">{_datestr} · <span id="live-clock">{_now.strftime('%H:%M:%S')}</span></span>
     </div>
 </div>
 <script>
