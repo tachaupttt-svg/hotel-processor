@@ -335,12 +335,13 @@ st.markdown("""
         0%,100% {transform: translate(0,0) scale(1);}
         50% {transform: translate(-30px,20px) scale(1.2);}
     }
-    .header-content {position: relative; z-index: 1;}
+    .header-content {position: relative; z-index: 1; text-align: center;}
     .welcome-line {
-        display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+        display: flex; align-items: center; justify-content: center;
+        gap: 10px; margin-bottom: 10px;
     }
     .wave {
-        display: inline-block; font-size: 1.3rem;
+        display: inline-block; font-size: 1.8rem;
         animation: wave 2.2s ease-in-out infinite;
         transform-origin: 70% 70%;
     }
@@ -353,16 +354,16 @@ st.markdown("""
         50% {transform: rotate(10deg);}
     }
     .typing {
-        color: #7dd3fc; font-size: 1.05rem; font-weight: 600;
+        color: #7dd3fc; font-size: 1.7rem; font-weight: 700;
         overflow: hidden; white-space: nowrap;
-        border-right: 2px solid #7dd3fc;
+        border-right: 3px solid #7dd3fc;
         width: 0; animation: typing 2s steps(24, end) forwards, blink 0.8s step-end infinite;
     }
     @keyframes typing {from {width: 0;} to {width: 100%;}}
     @keyframes blink {50% {border-color: transparent;}}
     .app-header h1 {
-        color: #ffffff; font-size: 1.7rem; font-weight: 700;
-        margin: 0; display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px;
+        color: #ffffff; font-size: 1.6rem; font-weight: 700;
+        margin: 0; display: inline-flex; align-items: center; gap: 12px; letter-spacing: -0.5px;
         animation: slideUp 0.6s ease 0.3s both;
     }
     @keyframes slideUp {from {opacity: 0; transform: translateY(12px);} to {opacity: 1; transform: translateY(0);}}
@@ -378,10 +379,10 @@ st.markdown("""
         25% {transform: rotate(0deg);}
     }
     .clock-badge {
-        display: inline-block; margin-top: 12px;
+        display: inline-block; margin-top: 14px;
         background: rgba(255,255,255,0.12); backdrop-filter: blur(6px);
-        color: rgba(255,255,255,0.9); font-size: 0.82rem; font-weight: 500;
-        padding: 6px 14px; border-radius: 20px;
+        color: rgba(255,255,255,0.92); font-size: 1.05rem; font-weight: 600;
+        padding: 9px 22px; border-radius: 24px;
         border: 1px solid rgba(255,255,255,0.15);
         animation: slideUp 0.6s ease 0.7s both;
     }
@@ -456,7 +457,6 @@ st.markdown(f"""
             <span class="typing">{_greet}, Ta Châu!</span>
         </div>
         <h1><span class="app-logo">🛎️</span> Hotel Guest Processor</h1>
-        <p>Xử lý dữ liệu khách sạn tự động — KBTT · Thông báo lưu trú · ĐK14 · Regcard</p>
         <div class="clock-badge">📅 {_datestr}&nbsp;&nbsp;·&nbsp;&nbsp;<span id="live-clock">{_now.strftime('%H:%M:%S')}</span></div>
     </div>
 </div>
