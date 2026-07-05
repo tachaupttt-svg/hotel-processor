@@ -509,7 +509,7 @@ def build_vnm(df_vn):
         if is_gks:
             sg=make_code('GKS',ns); lg='5 - Giấy khai sinh'; gks_cnt+=1
         elif is_gbl:
-            sg=make_code('GBL',ns); lg='Giấy tờ khác'; ten_giay='Giấy bảo lãnh'; gbl_cnt+=1
+            sg=make_code('GBL',ns); lg='9 - Giấy tờ khác'; ten_giay='Giấy bảo lãnh'; gbl_cnt+=1
         else:
             sg=sg_raw; lg=LOAI_GIAY.get(lg_raw,lg_raw)
         tinh=TINH.get(str(row.get('TP/TỈNH','')).strip().upper(),'')
