@@ -4,6 +4,9 @@ from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from copy import copy
 import xlrd, datetime, io, zipfile, base64, os
+from pypdf import PdfReader, PdfWriter
+from reportlab.pdfgen import canvas as rl_canvas
+from reportlab.lib.colors import white, black
 
 st.set_page_config(page_title="Hotel Guest Processor", page_icon="🛎️", layout="centered")
 
@@ -25,6 +28,7 @@ NAT_KBTT = {
     'Trung Quốc':'CHN - China','Ô-xtrây-li-a':'AUS - Australia',
     'Bê-la-rút':'BLR - Belarus','U-crai-na':'UKR - Ukraine',
     'Môn-đô-va':'MDA - Moldova','Phần Lan':'FIN - Finland','Pháp':'FRA - France',
+    'Đan Mạch':'DNK - Denmark','Mô-ri-xơ':'MUS - Mauritius',
 }
 NAT_DK14 = {
     'RUS':'Russia  (Liên bang Nga)','UZB':'Uzbekistan  ( U-dơ-bê-ki-xtan )',
@@ -36,6 +40,7 @@ NAT_DK14 = {
     'BLR':'Belarus  ( Bê-la-rút )','CHN':'China  ( Trung Quốc )',
     'DEU':'Germany  ( Đức )','MDA':'Moldova  ( Môn-đô-va )',
     'FIN':'Finland  ( Phần Lan )','FRA':'France  ( Pháp )',
+    'DNK':'Denmark  ( Đan Mạch )','MUS':'Mauritius  ( Mô-ri-xơ )',
 }
 LOAI_GIAY = {
     'Căn cước công dân':'8 - Thẻ Căn Cước','Hộ chiếu':'4 - Hộ chiếu',
@@ -205,6 +210,100 @@ def build_dk14(xls_bytes):
             elif ci in (8,9) and val: cell.number_format='DD/MM/YYYY'
     return wb_o, len(data)
 
+
+# ── Regcard PDF builder ───────────────────────────────────────────────────
+def load_regcard_template():
+    path = os.path.join(os.path.dirname(__file__), 'tmpl_regcard.b64')
+    with open(path, 'r') as f:
+        return base64.b64decode(f.read())
+
+def _rc_clean_name(n):
+    if pd.isna(n): return ''
+    return str(n).strip().rstrip(',').strip()
+
+def _rc_conf(c):
+    if pd.isna(c): return ''
+    return str(int(c)) if isinstance(c,(int,float)) else str(c)
+
+def _rc_date(d):
+    if pd.isna(d): return ''
+    if hasattr(d,'strftime'):
+        return f"{d.month:02d}/{d.day:02d}/{d.year}"
+    s=str(d).strip(); p=s.split('/')
+    if len(p)==3:
+        dd,mm,yy=p
+        if len(yy)==2: yy='20'+yy
+        return f"{dd}/{mm}/{yy}"
+    return s
+
+def _rc_nights(arr,dep):
+    try:
+        if hasattr(arr,'strftime'):
+            a=pd.Timestamp(year=arr.year,month=arr.day,day=arr.month)
+        else:
+            p=str(arr).split('/'); a=pd.Timestamp(f"20{p[2]}-{p[1]}-{p[0]}")
+        p=str(dep).split('/')
+        d=pd.Timestamp(f"20{p[2]}-{p[1]}-{p[0]}") if len(p[2])==2 else pd.to_datetime(dep)
+        return str((d-a).days)
+    except: return ''
+
+def build_regcards(xlsx_bytes, only_main=True):
+    """Tạo PDF regcard hàng loạt. only_main=True: chỉ khách chính (có Conf#)."""
+    df = pd.read_excel(io.BytesIO(xlsx_bytes))
+    H = 841.0
+    FONT = "Times-Roman"; SIZE = 9.8
+    POS = {
+        'name':(125.5,109.6),'conf':(526.8,108.5),'arrival':(119.9,144.2),
+        'departure':(329.9,144.2),'nights':(500.0,144.2),'type':(113.6,179.9),
+        'rm':(360.6,179.9),'company':(221.4,216.3),
+    }
+    BLANK = [
+        (124,99,245,111),(525,97,565,110),(118,133,167,146),(328,133,377,146),
+        (498,133,510,146),(112,169,134,181),(359,169,383,181),(219,205,266,218),
+        (135,277,540,290),(142,444,285,457),
+    ]
+    tmpl_bytes = load_regcard_template()
+    writer = PdfWriter()
+    count = 0
+    for _, row in df.iterrows():
+        # Skip non-main rows if only_main
+        if only_main and pd.isna(row.get('Conf#')):
+            continue
+        name = _rc_clean_name(row.get('Name'))
+        if not name:
+            continue
+        data = {
+            'name': name,
+            'conf': _rc_conf(row.get('Conf#')),
+            'arrival': _rc_date(row.get('Arrival')),
+            'departure': _rc_date(row.get('Departure')),
+            'nights': _rc_nights(row.get('Arrival'), row.get('Departure')),
+            'type': str(row.get('Type')) if pd.notna(row.get('Type')) else '',
+            'rm': str(row.get('Rm')) if pd.notna(row.get('Rm')) else '',
+            'company': str(row.get('Company')) if pd.notna(row.get('Company')) else '',
+        }
+        buf = io.BytesIO()
+        c = rl_canvas.Canvas(buf, pagesize=(595,841))
+        c.setFillColor(white)
+        for x0,top,x1,bot in BLANK:
+            c.rect(x0-1, H-bot-1, (x1-x0)+2, (bot-top)+2, fill=1, stroke=0)
+        c.setFillColor(black)
+        c.setFont(FONT, SIZE)
+        for key,(x,bottom) in POS.items():
+            if data[key]:
+                c.drawString(x, H-bottom, data[key])
+        c.save(); buf.seek(0)
+        base = PdfReader(io.BytesIO(tmpl_bytes))
+        overlay = PdfReader(buf)
+        page = base.pages[0]
+        page.merge_page(overlay.pages[0])
+        writer.add_page(page)
+        count += 1
+    out = io.BytesIO()
+    writer.write(out)
+    return out.getvalue(), count
+
+
 # ── UI ────────────────────────────────────────────────────────────────────
 
 # Custom CSS
@@ -254,97 +353,130 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Settings section
-st.markdown('<div class="section-label">⚙️ Cài đặt</div>', unsafe_allow_html=True)
-col1, col2 = st.columns(2)
-with col1:
-    rate = st.number_input("💱 Tỷ giá USD/EUR → VNĐ", value=29535.15, step=0.01, format="%.2f")
-with col2:
-    today = datetime.date.today()
-    date_str = st.text_input("📅 Ngày (dùng cho tên file)", value=f"{today.day}_{today.month:02d}")
+# Tabs
+tab1, tab2 = st.tabs(["📋 Xử lý hồ sơ hàng ngày", "🖨️ Tạo Regcard PDF"])
 
-st.write("")
+with tab1:
+    st.markdown('<div class="section-label">⚙️ Cài đặt</div>', unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    with col1:
+        rate = st.number_input("💱 Tỷ giá USD/EUR → VNĐ", value=29535.15, step=0.01, format="%.2f")
+    with col2:
+        today = datetime.date.today()
+        date_str = st.text_input("📅 Ngày (dùng cho tên file)", value=f"{today.day}_{today.month:02d}")
 
-# Upload section
-st.markdown('<div class="section-label">📂 Tải file lên</div>', unsafe_allow_html=True)
-col_x, col_s = st.columns(2)
-with col_x:
-    xlsx_file = st.file_uploader("File XLSX — Dữ liệu khách (bắt buộc)", type=['xlsx'])
-with col_s:
-    xls_file = st.file_uploader("File XLS — Nguồn ĐK14 (tùy chọn)", type=['xls'])
+    st.write("")
+    st.markdown('<div class="section-label">📂 Tải file lên</div>', unsafe_allow_html=True)
+    col_x, col_s = st.columns(2)
+    with col_x:
+        xlsx_file = st.file_uploader("File XLSX — Dữ liệu khách (bắt buộc)", type=['xlsx'], key="daily_xlsx")
+    with col_s:
+        xls_file = st.file_uploader("File XLS — Nguồn ĐK14 (tùy chọn)", type=['xls'], key="daily_xls")
 
-st.write("")
+    st.write("")
 
-if st.button("⚡ Bắt đầu xử lý", type="primary", disabled=xlsx_file is None, use_container_width=True):
-    with st.spinner("Đang xử lý..."):
-        try:
-            xlsx_bytes = xlsx_file.read()
-            progress = st.progress(0, text="Quy đổi tỷ giá...")
+    if st.button("⚡ Bắt đầu xử lý", type="primary", disabled=xlsx_file is None, use_container_width=True):
+        with st.spinner("Đang xử lý..."):
+            try:
+                xlsx_bytes = xlsx_file.read()
+                progress = st.progress(0, text="Quy đổi tỷ giá...")
 
-            wb, conv = process_xlsx(xlsx_bytes, rate)
-            df = pd.read_excel(io.BytesIO(xlsx_bytes))
-            df_intl = df[df['LOẠI KHÁCH']=='Quốc tế'].reset_index(drop=True)
-            df_vn   = df[df['LOẠI KHÁCH']=='Việt Nam'].reset_index(drop=True)
+                wb, conv = process_xlsx(xlsx_bytes, rate)
+                df = pd.read_excel(io.BytesIO(xlsx_bytes))
+                df_intl = df[df['LOẠI KHÁCH']=='Quốc tế'].reset_index(drop=True)
+                df_vn   = df[df['LOẠI KHÁCH']=='Việt Nam'].reset_index(drop=True)
 
-            progress.progress(15, text="Tách file Quốc tế / Việt Nam...")
-            wb_intl = split_wb(wb, 'Quốc tế')
-            wb_vn   = split_wb(wb, 'Việt Nam')
+                progress.progress(15, text="Tách file Quốc tế / Việt Nam...")
+                wb_intl = split_wb(wb, 'Quốc tế')
+                wb_vn   = split_wb(wb, 'Việt Nam')
 
-            progress.progress(35, text="Điền mẫu KBTT...")
-            wb_kbtt = build_kbtt(df_intl)
+                progress.progress(35, text="Điền mẫu KBTT...")
+                wb_kbtt = build_kbtt(df_intl)
 
-            progress.progress(55, text="Điền mẫu Thông báo lưu trú VNM...")
-            wb_vnm, gks_cnt, gbl_cnt = build_vnm(df_vn)
+                progress.progress(55, text="Điền mẫu Thông báo lưu trú VNM...")
+                wb_vnm, gks_cnt, gbl_cnt = build_vnm(df_vn)
 
-            progress.progress(75, text="Đóng gói ZIP...")
+                progress.progress(75, text="Đóng gói ZIP...")
 
-            zip_buf = io.BytesIO()
-            with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
-                zf.writestr(f'converted_{date_str}.xlsx',      wb_to_bytes(wb))
-                zf.writestr(f'KhachQuocTe_{date_str}.xlsx',    wb_to_bytes(wb_intl))
-                zf.writestr(f'KhachVietNam_{date_str}.xlsx',   wb_to_bytes(wb_vn))
-                zf.writestr(f'ho_so_KBTT_NNN_{date_str}.xlsx', wb_to_bytes(wb_kbtt))
-                zf.writestr(f'thong_bao_luu_tru_VNM_{date_str}.xlsx', wb_to_bytes(wb_vnm))
-                has_dk14 = False
-                if xls_file:
-                    progress.progress(85, text="Điền mẫu ĐK14...")
-                    xls_bytes = xls_file.read()
-                    wb_dk14, dk_count = build_dk14(xls_bytes)
-                    zf.writestr(f'dk14_{date_str}.xlsx', wb_to_bytes(wb_dk14))
-                    has_dk14 = True
+                zip_buf = io.BytesIO()
+                with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+                    zf.writestr(f'converted_{date_str}.xlsx',      wb_to_bytes(wb))
+                    zf.writestr(f'KhachQuocTe_{date_str}.xlsx',    wb_to_bytes(wb_intl))
+                    zf.writestr(f'KhachVietNam_{date_str}.xlsx',   wb_to_bytes(wb_vn))
+                    zf.writestr(f'ho_so_KBTT_NNN_{date_str}.xlsx', wb_to_bytes(wb_kbtt))
+                    zf.writestr(f'thong_bao_luu_tru_VNM_{date_str}.xlsx', wb_to_bytes(wb_vnm))
+                    has_dk14 = False
+                    if xls_file:
+                        progress.progress(85, text="Điền mẫu ĐK14...")
+                        xls_bytes = xls_file.read()
+                        wb_dk14, dk_count = build_dk14(xls_bytes)
+                        zf.writestr(f'dk14_{date_str}.xlsx', wb_to_bytes(wb_dk14))
+                        has_dk14 = True
 
-            progress.progress(100, text="Hoàn tất!")
-            progress.empty()
+                progress.progress(100, text="Hoàn tất!")
+                progress.empty()
 
-            st.success("✅ Xử lý hoàn tất!")
+                st.success("✅ Xử lý hoàn tất!")
 
-            c1,c2,c3,c4 = st.columns(4)
-            c1.metric("Tổng khách", len(df))
-            c2.metric("Quốc tế", len(df_intl))
-            c3.metric("Việt Nam", len(df_vn))
-            c4.metric("GKS + GBL", f"{gks_cnt} + {gbl_cnt}")
+                c1,c2,c3,c4 = st.columns(4)
+                c1.metric("Tổng khách", len(df))
+                c2.metric("Quốc tế", len(df_intl))
+                c3.metric("Việt Nam", len(df_vn))
+                c4.metric("GKS + GBL", f"{gks_cnt} + {gbl_cnt}")
 
-            st.info(f"💱 Đã quy đổi tỷ giá cho **{conv}** ô (đã tô vàng)")
+                st.info(f"💱 Đã quy đổi tỷ giá cho **{conv}** ô (đã tô vàng)")
 
-            # File list
-            files_made = ["📄 converted (file chung)", "🌍 KhachQuocTe", "🇻🇳 KhachVietNam",
-                          "📝 KBTT NNN", "📑 Thông báo lưu trú VNM"]
-            if has_dk14:
-                files_made.append("🚔 ĐK14")
-            st.markdown("**File đã tạo:** " + " · ".join(files_made))
+                files_made = ["📄 converted (file chung)", "🌍 KhachQuocTe", "🇻🇳 KhachVietNam",
+                              "📝 KBTT NNN", "📑 Thông báo lưu trú VNM"]
+                if has_dk14:
+                    files_made.append("🚔 ĐK14")
+                st.markdown("**File đã tạo:** " + " · ".join(files_made))
 
-            st.download_button(
-                label="⬇️ Tải về tất cả file (ZIP)",
-                data=zip_buf.getvalue(),
-                file_name=f"hotel_{date_str}.zip",
-                mime="application/zip",
-                use_container_width=True,
-                type="primary"
-            )
+                st.download_button(
+                    label="⬇️ Tải về tất cả file (ZIP)",
+                    data=zip_buf.getvalue(),
+                    file_name=f"hotel_{date_str}.zip",
+                    mime="application/zip",
+                    use_container_width=True,
+                    type="primary"
+                )
+            except Exception as e:
+                st.error(f"❌ Lỗi: {e}")
+                st.exception(e)
 
-        except Exception as e:
-            st.error(f"❌ Lỗi: {e}")
-            st.exception(e)
+with tab2:
+    st.markdown('<div class="section-label">🖨️ Tạo Registration Card hàng loạt</div>', unsafe_allow_html=True)
+    st.caption("Điền dữ liệu từ file Excel (Booking list) lên mẫu Regcard PDF gốc — giữ nguyên 100% form.")
+
+    rc_file = st.file_uploader("File Excel dữ liệu booking (.xlsx)", type=['xlsx'], key="rc_xlsx")
+
+    only_main = st.checkbox("Chỉ tạo cho khách chính (có mã Conf#)", value=True,
+                            help="Bỏ chọn để tạo regcard cho tất cả khách, kể cả khách đi cùng phòng")
+
+    st.write("")
+
+    if st.button("🖨️ Tạo Regcard PDF", type="primary", disabled=rc_file is None, use_container_width=True):
+        with st.spinner("Đang tạo PDF..."):
+            try:
+                rc_bytes = rc_file.read()
+                pdf_data, count = build_regcards(rc_bytes, only_main=only_main)
+
+                if count == 0:
+                    st.warning("⚠️ Không tìm thấy khách nào để tạo regcard. Kiểm tra lại file.")
+                else:
+                    st.success(f"✅ Đã tạo {count} regcard!")
+                    st.metric("Số regcard", count)
+                    st.download_button(
+                        label=f"⬇️ Tải về {count} Regcard (PDF)",
+                        data=pdf_data,
+                        file_name=f"regcards_{datetime.date.today().strftime('%d_%m')}.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                        type="primary"
+                    )
+            except Exception as e:
+                st.error(f"❌ Lỗi: {e}")
+                st.exception(e)
 
 st.divider()
-st.caption("🔒 File mẫu KBTT · Thông báo lưu trú VNM · ĐK14 đã được tích hợp sẵn — xử lý cục bộ, an toàn")
+st.caption("🔒 File mẫu KBTT · Thông báo lưu trú VNM · ĐK14 · Regcard đã được tích hợp sẵn — xử lý cục bộ, an toàn")
