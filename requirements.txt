@@ -2,3 +2,5 @@ streamlit
 openpyxl
 xlrd==2.0.1
 pandas
+pypdf
+reportlab
