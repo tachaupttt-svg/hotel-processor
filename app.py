@@ -386,6 +386,28 @@ st.markdown("""
         animation: slideUp 0.6s ease 0.7s both;
     }
     #live-clock {font-variant-numeric: tabular-nums; font-weight: 700; color: #7dd3fc;}
+    .menu-card {
+        border-radius: 16px; padding: 1.5rem 1.4rem; margin-bottom: 0.75rem;
+        border: 1.5px solid #e2e8f0; background: #ffffff;
+        transition: all 0.25s ease; cursor: default; min-height: 168px;
+        position: relative; overflow: hidden;
+    }
+    .menu-card:hover {
+        transform: translateY(-4px); box-shadow: 0 12px 28px rgba(15,52,96,0.15);
+        border-color: #0f3460;
+    }
+    .menu-card::before {
+        content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    }
+    .menu-blue::before {background: linear-gradient(90deg, #0f3460, #3b82f6);}
+    .menu-green::before {background: linear-gradient(90deg, #16a34a, #4ade80);}
+    .menu-icon {
+        font-size: 2.4rem; margin-bottom: 0.6rem; display: inline-block;
+        animation: menuFloat 3s ease-in-out infinite;
+    }
+    @keyframes menuFloat {0%,100% {transform: translateY(0);} 50% {transform: translateY(-6px);}}
+    .menu-title {font-size: 1.1rem; font-weight: 700; color: #0f3460; margin-bottom: 0.4rem;}
+    .menu-desc {font-size: 0.82rem; color: #64748b; line-height: 1.5;}
     .app-logo {
         width: 46px; height: 46px; background: rgba(255,255,255,0.12);
         border-radius: 12px; display: inline-flex; align-items: center;
@@ -452,10 +474,46 @@ st.markdown(f"""
 </script>
 """, unsafe_allow_html=True)
 
-# Tabs
-tab1, tab2 = st.tabs(["📋 Xử lý hồ sơ hàng ngày", "🖨️ Tạo Regcard PDF"])
+# Menu selection (session state)
+if "menu" not in st.session_state:
+    st.session_state.menu = None
 
-with tab1:
+def go_menu(name):
+    st.session_state.menu = name
+
+# ── Menu landing screen ───────────────────────────────────────────────────
+if st.session_state.menu is None:
+    st.markdown('<div class="section-label">✨ Chọn chức năng</div>', unsafe_allow_html=True)
+    st.write("")
+    mcol1, mcol2 = st.columns(2)
+    with mcol1:
+        st.markdown("""
+        <div class="menu-card menu-blue">
+            <div class="menu-icon">📋</div>
+            <div class="menu-title">Xử lý hồ sơ hàng ngày</div>
+            <div class="menu-desc">Quy đổi tỷ giá · Tách Quốc tế/Việt Nam · KBTT · Thông báo lưu trú · ĐK14</div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.button("Mở chức năng này  →", key="btn_daily", use_container_width=True,
+                  on_click=go_menu, args=("daily",))
+    with mcol2:
+        st.markdown("""
+        <div class="menu-card menu-green">
+            <div class="menu-icon">🖨️</div>
+            <div class="menu-title">Tạo Regcard PDF</div>
+            <div class="menu-desc">Điền dữ liệu booking lên mẫu Registration Card · Xuất PDF hàng loạt</div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.button("Mở chức năng này  →", key="btn_regcard", use_container_width=True,
+                  on_click=go_menu, args=("regcard",))
+
+    st.divider()
+    st.caption("🔒 File mẫu KBTT · Thông báo lưu trú VNM · ĐK14 · Regcard đã tích hợp sẵn — xử lý an toàn")
+
+# ── Daily processing screen ───────────────────────────────────────────────
+if st.session_state.menu == "daily":
+    st.button("←  Quay lại menu", key="back_daily", on_click=go_menu, args=(None,))
+    st.write("")
     st.markdown('<div class="section-label">⚙️ Cài đặt</div>', unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     with col1:
@@ -543,7 +601,10 @@ with tab1:
                 st.error(f"❌ Lỗi: {e}")
                 st.exception(e)
 
-with tab2:
+# ── Regcard screen ────────────────────────────────────────────────────────
+if st.session_state.menu == "regcard":
+    st.button("←  Quay lại menu", key="back_regcard", on_click=go_menu, args=(None,))
+    st.write("")
     st.markdown('<div class="section-label">🖨️ Tạo Registration Card hàng loạt</div>', unsafe_allow_html=True)
     st.caption("Điền dữ liệu từ file Excel (Booking list) lên mẫu Regcard PDF gốc — giữ nguyên 100% form.")
 
@@ -577,5 +638,4 @@ with tab2:
                 st.error(f"❌ Lỗi: {e}")
                 st.exception(e)
 
-st.divider()
-st.caption("🔒 File mẫu KBTT · Thông báo lưu trú VNM · ĐK14 · Regcard đã được tích hợp sẵn — xử lý cục bộ, an toàn")
+
