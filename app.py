@@ -313,15 +313,79 @@ st.markdown("""
     footer {visibility: hidden;}
     .block-container {padding-top: 2.5rem; padding-bottom: 2rem; max-width: 820px;}
     .app-header {
-        background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+        position: relative; overflow: hidden;
+        background: linear-gradient(135deg, #0f3460, #16213e, #1a1a2e, #0f3460);
+        background-size: 300% 300%;
+        animation: gradientShift 12s ease infinite;
         border-radius: 18px; padding: 1.75rem 2rem; margin-bottom: 1.75rem;
-        box-shadow: 0 8px 24px rgba(15,52,96,0.25);
+        box-shadow: 0 8px 28px rgba(15,52,96,0.35);
     }
+    @keyframes gradientShift {
+        0% {background-position: 0% 50%;}
+        50% {background-position: 100% 50%;}
+        100% {background-position: 0% 50%;}
+    }
+    .header-glow {
+        position: absolute; top: -60%; right: -20%;
+        width: 300px; height: 300px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(96,165,250,0.25) 0%, transparent 70%);
+        animation: floatGlow 8s ease-in-out infinite;
+    }
+    @keyframes floatGlow {
+        0%,100% {transform: translate(0,0) scale(1);}
+        50% {transform: translate(-30px,20px) scale(1.2);}
+    }
+    .header-content {position: relative; z-index: 1;}
+    .welcome-line {
+        display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .wave {
+        display: inline-block; font-size: 1.3rem;
+        animation: wave 2.2s ease-in-out infinite;
+        transform-origin: 70% 70%;
+    }
+    @keyframes wave {
+        0%,60%,100% {transform: rotate(0deg);}
+        10% {transform: rotate(14deg);}
+        20% {transform: rotate(-8deg);}
+        30% {transform: rotate(14deg);}
+        40% {transform: rotate(-4deg);}
+        50% {transform: rotate(10deg);}
+    }
+    .typing {
+        color: #7dd3fc; font-size: 1.05rem; font-weight: 600;
+        overflow: hidden; white-space: nowrap;
+        border-right: 2px solid #7dd3fc;
+        width: 0; animation: typing 2s steps(24, end) forwards, blink 0.8s step-end infinite;
+    }
+    @keyframes typing {from {width: 0;} to {width: 100%;}}
+    @keyframes blink {50% {border-color: transparent;}}
     .app-header h1 {
         color: #ffffff; font-size: 1.7rem; font-weight: 700;
         margin: 0; display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px;
+        animation: slideUp 0.6s ease 0.3s both;
     }
-    .app-header p {color: rgba(255,255,255,0.7); margin: 6px 0 0 0; font-size: 0.9rem;}
+    @keyframes slideUp {from {opacity: 0; transform: translateY(12px);} to {opacity: 1; transform: translateY(0);}}
+    .app-header p {
+        color: rgba(255,255,255,0.7); margin: 6px 0 0 0; font-size: 0.9rem;
+        animation: slideUp 0.6s ease 0.5s both;
+    }
+    .app-logo {animation: bellRing 3s ease-in-out infinite;}
+    @keyframes bellRing {
+        0%,50%,100% {transform: rotate(0deg);}
+        5% {transform: rotate(12deg);} 10% {transform: rotate(-10deg);}
+        15% {transform: rotate(8deg);} 20% {transform: rotate(-6deg);}
+        25% {transform: rotate(0deg);}
+    }
+    .clock-badge {
+        display: inline-block; margin-top: 12px;
+        background: rgba(255,255,255,0.12); backdrop-filter: blur(6px);
+        color: rgba(255,255,255,0.9); font-size: 0.82rem; font-weight: 500;
+        padding: 6px 14px; border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.15);
+        animation: slideUp 0.6s ease 0.7s both;
+    }
+    #live-clock {font-variant-numeric: tabular-nums; font-weight: 700; color: #7dd3fc;}
     .app-logo {
         width: 46px; height: 46px; background: rgba(255,255,255,0.12);
         border-radius: 12px; display: inline-flex; align-items: center;
@@ -345,12 +409,47 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Header
-st.markdown("""
+# Animated welcome header
+_now = datetime.datetime.now()
+_hour = _now.hour
+if _hour < 11:
+    _greet, _emoji = "Chào buổi sáng", "🌅"
+elif _hour < 14:
+    _greet, _emoji = "Chào buổi trưa", "☀️"
+elif _hour < 18:
+    _greet, _emoji = "Chào buổi chiều", "🌤️"
+else:
+    _greet, _emoji = "Chào buổi tối", "🌙"
+
+_weekdays = ["Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy","Chủ Nhật"]
+_wd = _weekdays[_now.weekday()]
+_datestr = f"{_wd}, {_now.day:02d}/{_now.month:02d}/{_now.year}"
+
+st.markdown(f"""
 <div class="app-header">
-    <h1><span class="app-logo">🛎️</span> Hotel Guest Processor</h1>
-    <p>Xử lý dữ liệu khách sạn tự động — KBTT · Thông báo lưu trú · ĐK14</p>
+    <div class="header-glow"></div>
+    <div class="header-content">
+        <div class="welcome-line">
+            <span class="wave">{_emoji}</span>
+            <span class="typing">{_greet}, Ta Châu!</span>
+        </div>
+        <h1><span class="app-logo">🛎️</span> Hotel Guest Processor</h1>
+        <p>Xử lý dữ liệu khách sạn tự động — KBTT · Thông báo lưu trú · ĐK14 · Regcard</p>
+        <div class="clock-badge">📅 {_datestr}&nbsp;&nbsp;·&nbsp;&nbsp;<span id="live-clock">{_now.strftime('%H:%M:%S')}</span></div>
+    </div>
 </div>
+<script>
+(function(){{
+    function tick(){{
+        var el = window.parent.document.getElementById('live-clock');
+        if(el){{
+            var d = new Date();
+            el.textContent = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+        }}
+    }}
+    setInterval(tick, 1000);
+}})();
+</script>
 """, unsafe_allow_html=True)
 
 # Tabs
