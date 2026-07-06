@@ -947,16 +947,16 @@ components.html("""
     </div>
 </div>
 <script>
-    var WD = ["Chu Nhat","Thu Hai","Thu Ba","Thu Tu","Thu Nam","Thu Sau","Thu Bay"];
+    var WD = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
     function pad(n){ return String(n).padStart(2,'0'); }
     function update(){
         var d = new Date();
         var h = d.getHours();
-        // Khung giờ: 0-12 sáng, 12-18 chiều, 18-24 tối
+        // Time slots: 0-12 morning, 12-18 afternoon, 18-24 evening
         var greet, emoji;
-        if (h < 12) { greet = "Chao buoi sang"; emoji = "☀️"; }
-        else if (h < 18) { greet = "Chao buoi chieu"; emoji = "🌆"; }
-        else { greet = "Chao buoi toi"; emoji = "🌙"; }
+        if (h < 12) { greet = "Good morning"; emoji = "☀️"; }
+        else if (h < 18) { greet = "Good afternoon"; emoji = "🌆"; }
+        else { greet = "Good evening"; emoji = "🌙"; }
         var ge = document.getElementById('greet-emoji');
         var gt = document.getElementById('greet-text');
         var dt = document.getElementById('date-text');
