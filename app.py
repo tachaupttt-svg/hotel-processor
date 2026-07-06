@@ -639,21 +639,28 @@ def build_regcards(xlsx_bytes, only_main=True):
     ]
 
     # ── Gộp theo Conf# ──
-    groups = []; current = None
-    for _, row in df.iterrows():
-        if pd.notna(row.get('Conf#')):
-            if current: groups.append(current)
-            current = {'main': row, 'rooms': [str(row.get('Rm'))] if pd.notna(row.get('Rm')) else []}
-        else:
-            if current is not None and pd.notna(row.get('Rm')):
-                r = str(row.get('Rm'))
-                if r not in current['rooms']:
-                    current['rooms'].append(r)
-            elif current is None and not only_main:
-                # khách lẻ không có Conf# (chỉ khi only_main=False)
-                current = {'main': row, 'rooms': [str(row.get('Rm'))] if pd.notna(row.get('Rm')) else []}
-                groups.append(current); current = None
-    if current: groups.append(current)
+    # Điền mã Conf# xuống các dòng trống (khách đi cùng booking),
+    # rồi gộp TẤT CẢ dòng cùng 1 mã Conf# thành 1 regcard, gộp mọi số phòng.
+    def _clean_room(r):
+        s = str(r).strip()
+        if s.endswith('.0'): s = s[:-2]
+        return s
+
+    df = df.copy()
+    df['_conf_ff'] = df['Conf#'].ffill()
+    groups = []
+    for conf_val, grp in df.groupby('_conf_ff', sort=False):
+        main_rows = grp[grp['Conf#'].notna()]
+        if len(main_rows) == 0:
+            continue
+        main = main_rows.iloc[0]
+        rooms = []
+        for r in grp['Rm']:
+            if pd.notna(r):
+                rs = _clean_room(r)
+                if rs and rs not in rooms:
+                    rooms.append(rs)
+        groups.append({'main': main, 'rooms': rooms})
 
     tmpl_bytes = load_regcard_template()
     writer = PdfWriter()
@@ -680,9 +687,52 @@ def build_regcards(xlsx_bytes, only_main=True):
             c.rect(x0, H-bot, (x1-x0), (bot-top), fill=1, stroke=0)
         c.setFillColor(black)
         c.setFont(FONT, SIZE)
+        MAXW = {'name': 300, 'company': 200}  # ô 1 dòng: thu nhỏ nếu tràn
         for key,(x,bottom) in POS.items():
-            if data[key]:
-                c.drawString(x, H-bottom, data[key])
+            val = data[key]
+            if not val:
+                continue
+            if key == 'rm':
+                # Ô số phòng: có thể nhiều phòng → chia tối đa 4 phòng/dòng,
+                # thu nhỏ cỡ chữ vừa bề rộng ô (~205pt tính cả ROOM RATE trống bên phải),
+                # xuống dòng nếu cần. Ô có bề rộng thoải mái tới hết ROOM RATE.
+                rooms = [s.strip() for s in val.split(',') if s.strip()]
+                RM_MAXW = 75  # chỉ trong ô ROOM NO (trước nhãn ROOM RATE)
+                RM_SIZE = SIZE
+                # Gom thành các dòng ≤ RM_MAXW
+                def _wrap(items, fs):
+                    lines=[]; cur=''
+                    for it in items:
+                        test = (cur + ', ' + it) if cur else it
+                        if c.stringWidth(test, FONT, fs) <= RM_MAXW:
+                            cur = test
+                        else:
+                            if cur: lines.append(cur)
+                            cur = it
+                    if cur: lines.append(cur)
+                    return lines
+                fs = RM_SIZE
+                lines = _wrap(rooms, fs)
+                # Nếu quá 2 dòng → giảm cỡ chữ tới khi ≤ 2 dòng (min 6.5pt)
+                while len(lines) > 2 and fs > 6.5:
+                    fs -= 0.3
+                    lines = _wrap(rooms, fs)
+                c.setFont(FONT, fs)
+                # vẽ từng dòng, dòng 2 cách dòng 1 khoảng (fs+2)
+                for i, ln in enumerate(lines[:2]):
+                    c.drawString(x, H - bottom - i*(fs+2), ln)
+                c.setFont(FONT, SIZE)
+            else:
+                maxw = MAXW.get(key)
+                if maxw:
+                    fs = SIZE
+                    while fs > 6 and c.stringWidth(val, FONT, fs) > maxw:
+                        fs -= 0.3
+                    c.setFont(FONT, fs)
+                    c.drawString(x, H-bottom, val)
+                    c.setFont(FONT, SIZE)
+                else:
+                    c.drawString(x, H-bottom, val)
         c.save(); buf.seek(0)
         base = PdfReader(io.BytesIO(tmpl_bytes))
         overlay = PdfReader(buf)
