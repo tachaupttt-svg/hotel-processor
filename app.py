@@ -9,7 +9,17 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas as rl_canvas
 from reportlab.lib.colors import white, black
 
-st.set_page_config(page_title="Hotel Guest Processor", page_icon="🛎️", layout="centered")
+# Load Mt Fuji icon for page/PWA icon
+def _load_app_icon():
+    try:
+        from PIL import Image
+        p = os.path.join(os.path.dirname(__file__), 'icon.b64')
+        with open(p, 'r') as f:
+            return Image.open(io.BytesIO(base64.b64decode(f.read())))
+    except Exception:
+        return "🗻"
+
+st.set_page_config(page_title="Hotel Guest Processor", page_icon=_load_app_icon(), layout="centered")
 
 # ── Load embedded templates ──────────────────────────────────────────────
 @st.cache_resource
