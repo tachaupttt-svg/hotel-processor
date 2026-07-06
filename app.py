@@ -610,27 +610,46 @@ def _rc_nights(arr,dep):
     except: return ''
 
 def build_regcards(xlsx_bytes, only_main=True):
-    """Tạo PDF regcard hàng loạt. only_main=True: chỉ khách chính (có Conf#)."""
+    """Tạo PDF regcard hàng loạt, gộp theo Conf# (đoàn nhiều phòng → 1 regcard,
+    các số phòng gộp chung vào ô Room No)."""
     df = pd.read_excel(io.BytesIO(xlsx_bytes))
     H = 841.0
     FONT = "Times-Roman"; SIZE = 9.8
+    # Baseline chính xác (bottom) đo từ dữ liệu mẫu gốc — chữ trùng khít 100%
     POS = {
-        'name':(125.5,109.6),'conf':(526.8,108.5),'arrival':(119.9,144.2),
-        'departure':(329.9,144.2),'nights':(500.0,144.2),'type':(113.6,179.9),
-        'rm':(360.6,179.9),'company':(221.4,216.3),
+        'name':(125.50,109.60),'conf':(526.75,108.52),'arrival':(119.90,144.22),
+        'departure':(329.90,144.22),'nights':(500.30,144.22),'type':(113.60,179.92),
+        'rm':(360.60,179.92),'company':(221.40,216.32),
     }
+    # Ô che dữ liệu cũ — vừa khít vùng chữ, không lấn đường kẻ bảng
     BLANK = [
-        (124,99,245,111),(525,97,565,110),(118,133,167,146),(328,133,377,146),
-        (498,133,510,146),(112,169,134,181),(359,169,383,181),(219,205,266,218),
-        (135,277,540,290),(142,444,285,457),
+        (125,99,250,110.5),(526,98,568,109.5),(119,133.5,168,145.2),
+        (329,133.5,378,145.2),(500,133.5,512,145.2),(113,169,145,180.9),
+        (360,169,410,180.9),(221,205.5,320,217.3),
     ]
+
+    # ── Gộp theo Conf# ──
+    groups = []; current = None
+    for _, row in df.iterrows():
+        if pd.notna(row.get('Conf#')):
+            if current: groups.append(current)
+            current = {'main': row, 'rooms': [str(row.get('Rm'))] if pd.notna(row.get('Rm')) else []}
+        else:
+            if current is not None and pd.notna(row.get('Rm')):
+                r = str(row.get('Rm'))
+                if r not in current['rooms']:
+                    current['rooms'].append(r)
+            elif current is None and not only_main:
+                # khách lẻ không có Conf# (chỉ khi only_main=False)
+                current = {'main': row, 'rooms': [str(row.get('Rm'))] if pd.notna(row.get('Rm')) else []}
+                groups.append(current); current = None
+    if current: groups.append(current)
+
     tmpl_bytes = load_regcard_template()
     writer = PdfWriter()
     count = 0
-    for _, row in df.iterrows():
-        # Skip non-main rows if only_main
-        if only_main and pd.isna(row.get('Conf#')):
-            continue
+    for g in groups:
+        row = g['main']
         name = _rc_clean_name(row.get('Name'))
         if not name:
             continue
@@ -641,14 +660,14 @@ def build_regcards(xlsx_bytes, only_main=True):
             'departure': _rc_date(row.get('Departure')),
             'nights': _rc_nights(row.get('Arrival'), row.get('Departure')),
             'type': str(row.get('Type')) if pd.notna(row.get('Type')) else '',
-            'rm': str(row.get('Rm')) if pd.notna(row.get('Rm')) else '',
+            'rm': ', '.join(g['rooms']),   # gộp các số phòng
             'company': str(row.get('Company')) if pd.notna(row.get('Company')) else '',
         }
         buf = io.BytesIO()
         c = rl_canvas.Canvas(buf, pagesize=(595,841))
         c.setFillColor(white)
         for x0,top,x1,bot in BLANK:
-            c.rect(x0-1, H-bot-1, (x1-x0)+2, (bot-top)+2, fill=1, stroke=0)
+            c.rect(x0, H-bot, (x1-x0), (bot-top), fill=1, stroke=0)
         c.setFillColor(black)
         c.setFont(FONT, SIZE)
         for key,(x,bottom) in POS.items():
