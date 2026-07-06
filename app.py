@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
@@ -814,26 +815,35 @@ _weekdays = ["Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ
 _wd = _weekdays[_now.weekday()]
 _datestr = f"{_wd}, {_now.day:02d}/{_now.month:02d}/{_now.year}"
 
-st.markdown(f"""
-<div class="app-header">
-    <div class="greet-row">
-        <p class="greet-text"><span class="greet-emoji">{_emoji}</span>{_greet}, Ta Châu</p>
-        <span class="clock-text">{_datestr} · <span id="live-clock">{_now.strftime('%H:%M:%S')}</span></span>
+components.html(f"""
+<div style="
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:8px;
+    font-family:'Source Sans Pro','Segoe UI',Arial,sans-serif;
+    padding-bottom:1.5rem; border-bottom:1px solid #ececec;
+">
+    <div style="font-size:1.5rem; font-weight:650; color:#1a1a1a; letter-spacing:-0.02em;">
+        <span style="margin-right:6px;">{_emoji}</span>{_greet}, Ta Châu
+    </div>
+    <div style="font-size:0.85rem; color:#9b9b9b; font-weight:500; font-variant-numeric:tabular-nums;">
+        {_datestr} · <span id="live-clock" style="color:#6b6b6b; font-weight:600;">{_now.strftime('%H:%M:%S')}</span>
     </div>
 </div>
 <script>
-(function(){{
     function tick(){{
-        var el = window.parent.document.getElementById('live-clock');
+        var el = document.getElementById('live-clock');
         if(el){{
             var d = new Date();
-            el.textContent = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+            el.textContent =
+                String(d.getHours()).padStart(2,'0')+':'+
+                String(d.getMinutes()).padStart(2,'0')+':'+
+                String(d.getSeconds()).padStart(2,'0');
         }}
     }}
     setInterval(tick, 1000);
-}})();
+    tick();
 </script>
-""", unsafe_allow_html=True)
+""", height=64)
 
 # Menu selection (session state)
 if "menu" not in st.session_state:
