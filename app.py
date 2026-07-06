@@ -840,7 +840,7 @@ st.markdown("""
     }
     /* Khối nội dung: kính mờ (frosted glass) — hơi trong để thấy núi Phú Sĩ, làm mờ nền cho dễ đọc */
     .block-container {
-        background: rgba(255,255,255,0.58);
+        background: rgba(255,255,255,0.38);
         backdrop-filter: blur(10px) saturate(1.05);
         -webkit-backdrop-filter: blur(10px) saturate(1.05);
         border: 1px solid rgba(255,255,255,0.5);
@@ -884,12 +884,15 @@ st.markdown("""
     }
     .menu-card {
         border-radius: 12px; padding: 1.5rem 1.4rem; margin-bottom: 0.6rem;
-        border: 1px solid #ececec; background: #ffffff;
+        border: 1px solid rgba(255,255,255,0.4);
+        background: rgba(255,255,255,0.22);
+        backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
         transition: all 0.18s ease; min-height: 150px;
         animation: fadeIn 0.5s ease 0.15s both;
     }
     .menu-card:hover {
-        border-color: #d4d4d4; box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        background: rgba(255,255,255,0.34);
+        border-color: rgba(255,255,255,0.6); box-shadow: 0 2px 14px rgba(31,52,96,0.10);
     }
     .menu-icon {font-size: 1.9rem; margin-bottom: 0.7rem; display: block;}
     .menu-title {font-size: 1.02rem; font-weight: 650; color: #1a1a1a; margin-bottom: 0.35rem; letter-spacing: -0.01em;}
