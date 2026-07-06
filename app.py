@@ -1113,9 +1113,6 @@ if st.session_state.menu is None:
         st.button("Mở  →", key="btn_recon", use_container_width=True,
                   on_click=go_menu, args=("recon",))
 
-    st.divider()
-    st.caption("🔒 File mẫu KBTT · Thông báo lưu trú VNM · ĐK14 · Regcard đã tích hợp sẵn — xử lý an toàn")
-
 # ── Daily processing screen ───────────────────────────────────────────────
 if st.session_state.menu == "daily":
     st.button("←  Quay lại menu", key="back_daily", on_click=go_menu, args=(None,))
