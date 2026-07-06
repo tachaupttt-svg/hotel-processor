@@ -684,6 +684,88 @@ def build_regcards(xlsx_bytes, only_main=True):
     writer.write(out)
     return out.getvalue(), count
 
+# ── Đối chiếu Smile vs Trang lưu trú người nước ngoài ─────────────────────
+def _norm_pp(p):
+    """Chuẩn hóa số hộ chiếu."""
+    if pd.isna(p): return ''
+    s = str(p).strip().upper().replace(' ','')
+    if s.endswith('.0'): s = s[:-2]
+    return s
+
+def _norm_room(r):
+    if pd.isna(r): return ''
+    s = str(r).strip()
+    if s.endswith('.0'): s = s[:-2]
+    return s
+
+def reconcile(smile_bytes, luutru_bytes, today):
+    """Đối chiếu file Smile (inhouse) với file trang quản lý lưu trú.
+    today: pd.Timestamp ngày xuất file (hôm nay)."""
+    # ── Đọc Smile ──
+    df1 = pd.read_excel(io.BytesIO(smile_bytes), header=0)
+    smile = df1[['Passport #','NAT','Rm#','Arrival','Last Name','First Name']].copy()
+    smile = smile.dropna(subset=['Passport #'])
+    smile['pp'] = smile['Passport #'].apply(_norm_pp)
+    smile['Arrival'] = pd.to_datetime(smile['Arrival'], errors='coerce')
+    smile['name'] = (smile['Last Name'].astype(str).str.strip() + ' ' +
+                     smile['First Name'].astype(str).str.strip())
+    smile['room'] = smile['Rm#'].apply(_norm_room)
+    # Lọc: bỏ VNM + bỏ arrival = hôm nay
+    smile_f = smile[(smile['NAT'] != 'VNM') &
+                    (smile['Arrival'].dt.date != today.date())].copy()
+
+    # ── Đọc Lưu trú ──
+    df2 = pd.read_excel(io.BytesIO(luutru_bytes), header=9)
+    df2 = df2.dropna(subset=['Họ tên'])
+    df2['pp'] = df2['Số hộ chiếu'].apply(_norm_pp)
+    df2['ddk'] = pd.to_datetime(df2['Ngày đi dự kiến'], format='%d/%m/%Y', errors='coerce')
+    df2['room'] = df2['Số phòng'].apply(_norm_room)
+    # Lọc: bỏ ngày đi dự kiến = hôm nay
+    luutru_f = df2[df2['ddk'].dt.date != today.date()].copy()
+
+    smile_pp = set(smile_f['pp'])
+    luutru_pp = set(luutru_f['pp'])
+
+    # Đối chiếu người
+    chua_dk = smile_f[~smile_f['pp'].isin(luutru_pp)][['name','pp','NAT','room','Arrival']].copy()
+    chua_dk.columns = ['Họ tên','Số hộ chiếu','Quốc tịch','Số phòng','Ngày đến']
+    chua_dk['Ngày đến'] = chua_dk['Ngày đến'].dt.strftime('%d/%m/%Y')
+
+    thua = luutru_f[~luutru_f['pp'].isin(smile_pp)].copy()
+    # Giai đoạn lưu trú: Ngày đến → Ngày đi dự kiến
+    _dd = pd.to_datetime(thua['Ngày đến '], format='%d/%m/%Y', errors='coerce') if 'Ngày đến ' in thua else pd.Series([pd.NaT]*len(thua))
+    thua['_luutru'] = (_dd.dt.strftime('%d/%m/%Y').fillna('?') + ' → ' +
+                       thua['ddk'].dt.strftime('%d/%m/%Y').fillna('?'))
+    _qt = thua['QT'] if 'QT' in thua else ''
+    thua = pd.DataFrame({
+        'Họ tên': thua['Họ tên'].values,
+        'Số hộ chiếu': thua['pp'].values,
+        'Quốc tịch': _qt.values if hasattr(_qt,'values') else _qt,
+        'Số phòng': thua['room'].values,
+        'Giai đoạn lưu trú': thua['_luutru'].values,
+    })
+
+    dup = luutru_f[luutru_f['pp'].duplicated(keep=False) & (luutru_f['pp']!='')]
+    dup = dup[['Họ tên','pp','room']].sort_values('pp').copy()
+    dup.columns = ['Họ tên','Số hộ chiếu','Số phòng']
+
+    # Đối chiếu phòng
+    smile_rooms = set(r for r in smile_f['room'] if r)
+    luutru_rooms = set(r for r in luutru_f['room'] if r)
+    def _sortkey(x): return (len(x), x)
+    room_chua = sorted(smile_rooms - luutru_rooms, key=_sortkey)
+    room_thua = sorted(luutru_rooms - smile_rooms, key=_sortkey)
+
+    return {
+        'smile_total': len(smile), 'smile_filtered': len(smile_f),
+        'luutru_total': len(df2), 'luutru_filtered': len(luutru_f),
+        'chua_dk': chua_dk, 'thua': thua, 'dup': dup,
+        'room_chua': room_chua, 'room_thua': room_thua,
+        'room_match': len(smile_rooms & luutru_rooms),
+        'smile_rooms': len(smile_rooms), 'luutru_rooms': len(luutru_rooms),
+    }
+
+
 
 # ── UI ────────────────────────────────────────────────────────────────────
 
@@ -895,7 +977,7 @@ def go_menu(name):
 if st.session_state.menu is None:
     st.markdown('<div class="section-label">✨ Chọn chức năng</div>', unsafe_allow_html=True)
     st.write("")
-    mcol1, mcol2 = st.columns(2)
+    mcol1, mcol2, mcol3 = st.columns(3)
     with mcol1:
         st.markdown("""
         <div class="menu-card menu-blue">
@@ -904,7 +986,7 @@ if st.session_state.menu is None:
             <div class="menu-desc">Quy đổi tỷ giá · Tách Quốc tế/Việt Nam · KBTT · Thông báo lưu trú · ĐK14</div>
         </div>
         """, unsafe_allow_html=True)
-        st.button("Mở chức năng này  →", key="btn_daily", use_container_width=True,
+        st.button("Mở  →", key="btn_daily", use_container_width=True,
                   on_click=go_menu, args=("daily",))
     with mcol2:
         st.markdown("""
@@ -914,8 +996,18 @@ if st.session_state.menu is None:
             <div class="menu-desc">Điền dữ liệu booking lên mẫu Registration Card · Xuất PDF hàng loạt</div>
         </div>
         """, unsafe_allow_html=True)
-        st.button("Mở chức năng này  →", key="btn_regcard", use_container_width=True,
+        st.button("Mở  →", key="btn_regcard", use_container_width=True,
                   on_click=go_menu, args=("regcard",))
+    with mcol3:
+        st.markdown("""
+        <div class="menu-card menu-amber">
+            <div class="menu-icon">🔍</div>
+            <div class="menu-title">Đối chiếu lưu trú</div>
+            <div class="menu-desc">So khớp Smile vs Trang quản lý người nước ngoài · Tìm thiếu/trùng/lệch phòng</div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.button("Mở  →", key="btn_recon", use_container_width=True,
+                  on_click=go_menu, args=("recon",))
 
     st.divider()
     st.caption("🔒 File mẫu KBTT · Thông báo lưu trú VNM · ĐK14 · Regcard đã tích hợp sẵn — xử lý an toàn")
@@ -1065,4 +1157,107 @@ if st.session_state.menu == "regcard":
                 st.error(f"❌ Lỗi: {e}")
                 st.exception(e)
 
+
+# ── Đối chiếu: sub-menu 2 lựa chọn ────────────────────────────────────────
+if st.session_state.menu == "recon":
+    st.button("←  Quay lại menu", key="back_recon", on_click=go_menu, args=(None,))
+    st.write("")
+    st.markdown('<div class="section-label">🔍 Chọn loại kiểm tra</div>', unsafe_allow_html=True)
+    st.write("")
+    scol1, scol2 = st.columns(2)
+    with scol1:
+        st.markdown("""
+        <div class="menu-card menu-amber">
+            <div class="menu-icon">🌏</div>
+            <div class="menu-title">Kiểm tra lưu trú người nước ngoài</div>
+            <div class="menu-desc">So khớp khách Smile vs Trang quản lý người nước ngoài · Tìm khách chưa đăng ký / đăng ký trùng</div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.button("Mở  →", key="btn_recon_person", use_container_width=True,
+                  on_click=go_menu, args=("recon_person",))
+    with scol2:
+        st.markdown("""
+        <div class="menu-card menu-gray">
+            <div class="menu-icon">🚪</div>
+            <div class="menu-title">Kiểm tra hệ thống quản lý lưu trú phòng</div>
+            <div class="menu-desc">Đối chiếu số phòng inhouse với hệ thống quản lý lưu trú phòng <br><em>(đang phát triển)</em></div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.button("Sắp có", key="btn_recon_room", use_container_width=True,
+                  on_click=go_menu, args=("recon_room",))
+
+# ── Kiểm tra lưu trú người nước ngoài ─────────────────────────────────────
+if st.session_state.menu == "recon_person":
+    st.button("←  Quay lại", key="back_recon_person", on_click=go_menu, args=("recon",))
+    st.write("")
+    st.markdown('<div class="section-label">🌏 Kiểm tra lưu trú người nước ngoài</div>', unsafe_allow_html=True)
+    st.caption("So khớp khách Smile vs Trang quản lý người nước ngoài theo số hộ chiếu — tìm khách chưa đăng ký / đăng ký trùng.")
+
+    rc1, rc2 = st.columns(2)
+    with rc1:
+        smile_file = st.file_uploader("File Smile — Inhouse (.xlsx)", type=['xlsx'], key="recon_smile")
+    with rc2:
+        luutru_file = st.file_uploader("File Trang lưu trú người nước ngoài (.xlsx)", type=['xlsx'], key="recon_luutru")
+
+    today_str = st.text_input("📅 Ngày xuất file (hôm nay)", value=datetime.date.today().strftime('%d/%m/%Y'),
+                              help="Dùng để loại bỏ: khách arrival hôm nay (Smile) và khách ngày đi dự kiến hôm nay (Lưu trú)")
+
+    st.write("")
+
+    if st.button("🔍 Bắt đầu kiểm tra", type="primary",
+                 disabled=(smile_file is None or luutru_file is None), use_container_width=True):
+        with st.spinner("Đang đối chiếu..."):
+            try:
+                today = pd.to_datetime(today_str, format='%d/%m/%Y')
+                r = reconcile(smile_file.read(), luutru_file.read(), today)
+
+                st.success("✅ Kiểm tra hoàn tất!")
+
+                c1, c2 = st.columns(2)
+                c1.metric("Smile (sau lọc)", r['smile_filtered'], f"từ {r['smile_total']} (bỏ VNM + arrival hôm nay)")
+                c2.metric("Lưu trú (sau lọc)", r['luutru_filtered'], f"từ {r['luutru_total']} (bỏ đi dự kiến hôm nay)")
+
+                st.divider()
+                st.markdown("### 👤 Kết quả đối chiếu người (theo số hộ chiếu)")
+
+                n_chua = len(r['chua_dk']); n_thua = len(r['thua']); n_dup = len(r['dup'])
+
+                # Bảng tổng hợp chênh lệch
+                m1, m2, m3 = st.columns(3)
+                m1.metric("🔴 Chưa đăng ký", n_chua)
+                m2.metric("🟡 Có/lưu trú, thiếu/Smile", n_thua)
+                m3.metric("🟠 Đăng ký trùng", n_dup)
+
+                if n_chua == 0 and n_thua == 0 and n_dup == 0:
+                    st.success("✅ Khớp hoàn toàn! Không có ai thiếu/thừa/trùng.")
+
+                if n_chua > 0:
+                    st.error(f"🔴 {n_chua} khách trên Smile nhưng CHƯA đăng ký lưu trú:")
+                    st.dataframe(r['chua_dk'], use_container_width=True, hide_index=True)
+                else:
+                    st.success("✅ Không có khách nào chưa đăng ký lưu trú.")
+
+                if n_thua > 0:
+                    st.warning(f"🟡 Chênh lệch **{n_thua} người**: có trên Trang quản lý người nước ngoài nhưng KHÔNG có trên Smile (có thể đã checkout nhưng chưa xóa khỏi lưu trú):")
+                    st.dataframe(r['thua'], use_container_width=True, hide_index=True)
+                    # Nút tải danh sách chênh lệch
+                    _csv = r['thua'].to_csv(index=False).encode('utf-8-sig')
+                    st.download_button("⬇️ Tải danh sách chênh lệch (CSV)", _csv,
+                                       file_name="chenh_lech_luu_tru.csv", mime="text/csv")
+
+                if n_dup > 0:
+                    st.warning(f"🟠 {n_dup} dòng ĐĂNG KÝ TRÙNG trên lưu trú:")
+                    st.dataframe(r['dup'], use_container_width=True, hide_index=True)
+
+            except Exception as e:
+                st.error(f"❌ Lỗi: {e}")
+                st.exception(e)
+
+# ── Kiểm tra hệ thống quản lý lưu trú phòng (đang phát triển) ──────────────
+if st.session_state.menu == "recon_room":
+    st.button("←  Quay lại", key="back_recon_room", on_click=go_menu, args=("recon",))
+    st.write("")
+    st.markdown('<div class="section-label">🚪 Kiểm tra hệ thống quản lý lưu trú phòng</div>', unsafe_allow_html=True)
+    st.info("🚧 Tính năng đang được phát triển. Sẽ sớm ra mắt!")
+    st.caption("Chức năng này sẽ đối chiếu số phòng inhouse trên Smile với hệ thống quản lý lưu trú phòng.")
 
