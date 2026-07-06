@@ -1263,10 +1263,35 @@ if st.session_state.menu == "regcard":
                 st.exception(e)
 
 
-# ── Đối chiếu: sub-menu 2 lựa chọn ────────────────────────────────────────
+# ── Đối chiếu: sub-menu 2 lựa chọn (có cổng mật khẩu riêng) ────────────────
+RECON_PASS = "368736"
+if "recon_ok" not in st.session_state:
+    st.session_state.recon_ok = False
+
+def _check_recon():
+    if st.session_state.get("recon_pass_input", "") == RECON_PASS:
+        st.session_state.recon_ok = True
+        st.session_state.recon_pass_err = False
+    else:
+        st.session_state.recon_pass_err = True
+
 if st.session_state.menu == "recon":
     st.button("←  Quay lại menu", key="back_recon", on_click=go_menu, args=(None,))
     st.write("")
+
+    # Cổng mật khẩu cho tính năng đối chiếu
+    if not st.session_state.recon_ok:
+        st.markdown('<div class="section-label">🔒 Nhập mật khẩu để truy cập</div>', unsafe_allow_html=True)
+        st.caption("Tính năng Đối chiếu lưu trú được bảo vệ bằng mật khẩu riêng.")
+        with st.form("recon_pass_form", clear_on_submit=False):
+            st.text_input("Mật khẩu", key="recon_pass_input", type="password", placeholder="Nhập mật khẩu")
+            ok = st.form_submit_button("Mở khóa →", type="primary", use_container_width=True)
+            if ok:
+                _check_recon()
+        if st.session_state.get("recon_pass_err"):
+            st.error("❌ Mật khẩu không đúng!")
+        st.stop()
+
     st.markdown('<div class="section-label">🔍 Chọn loại kiểm tra</div>', unsafe_allow_html=True)
     st.write("")
     scol1, scol2 = st.columns(2)
