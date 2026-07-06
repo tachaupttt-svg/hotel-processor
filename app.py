@@ -1020,65 +1020,55 @@ components.html("""
 </script>
 """, height=64)
 
-# Hiệu ứng trang trí: hoa anh đào rơi + mây trôi (2 bên)
-st.markdown("""
-<style>
-    /* Lớp trang trí nền, không chắn thao tác */
-    .deco-layer {
-        position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
-    }
-    .cloud, .petal, .bird { z-index: 0; }
-    /* Mây trôi */
-    .cloud {
-        position: fixed; font-size: 2.8rem; opacity: 0.55;
-        animation: drift linear infinite;
-    }
-    @keyframes drift {
-        from { transform: translateX(-120px); }
-        to   { transform: translateX(110vw); }
-    }
-    /* Hoa anh đào rơi */
-    .petal {
-        position: fixed; top: -40px; font-size: 1.1rem;
-        animation: fall linear infinite; opacity: 0.85;
-    }
-    @keyframes fall {
-        0%   { transform: translateY(-40px) translateX(0) rotate(0deg); opacity: 0; }
-        10%  { opacity: 0.85; }
-        100% { transform: translateY(105vh) translateX(60px) rotate(360deg); opacity: 0.7; }
-    }
-    /* Chim bay */
-    .bird {
-        position: fixed; font-size: 1.3rem; opacity: 0.5;
-        animation: flyby linear infinite;
-    }
-    @keyframes flyby {
-        from { transform: translateX(-80px) translateY(0); }
-        50%  { transform: translateX(50vw) translateY(-25px); }
-        to   { transform: translateX(110vw) translateY(10px); }
-    }
-</style>
-<div class="deco-layer">
-    <!-- Mây -->
-    <div class="cloud" style="top:8%;  left:0;  animation-duration:48s;">☁️</div>
-    <div class="cloud" style="top:16%; left:0;  animation-duration:65s; animation-delay:8s; font-size:2rem;">☁️</div>
-    <div class="cloud" style="top:5%;  left:0;  animation-duration:80s; animation-delay:20s; font-size:2.3rem; opacity:0.4;">☁️</div>
-    <!-- Chim -->
-    <div class="bird" style="top:22%; animation-duration:35s; animation-delay:5s;">🐦</div>
-    <div class="bird" style="top:26%; animation-duration:42s; animation-delay:18s; font-size:1rem;">🐦</div>
-    <!-- Hoa anh đào rơi (2 bên) -->
-    <div class="petal" style="left:4%;  animation-duration:11s; animation-delay:0s;">🌸</div>
-    <div class="petal" style="left:9%;  animation-duration:14s; animation-delay:3s;">🌸</div>
-    <div class="petal" style="left:14%; animation-duration:9s;  animation-delay:6s; font-size:0.9rem;">🌸</div>
-    <div class="petal" style="left:19%; animation-duration:13s; animation-delay:2s;">🌸</div>
-    <div class="petal" style="left:6%;  animation-duration:16s; animation-delay:9s; font-size:0.8rem;">🌸</div>
-    <div class="petal" style="left:82%; animation-duration:12s; animation-delay:1s;">🌸</div>
-    <div class="petal" style="left:88%; animation-duration:15s; animation-delay:4s;">🌸</div>
-    <div class="petal" style="left:93%; animation-duration:10s; animation-delay:7s; font-size:0.9rem;">🌸</div>
-    <div class="petal" style="left:96%; animation-duration:13s; animation-delay:2s;">🌸</div>
-    <div class="petal" style="left:85%; animation-duration:17s; animation-delay:10s; font-size:0.8rem;">🌸</div>
-</div>
-""", unsafe_allow_html=True)
+# Hiệu ứng trang trí: hoa anh đào rơi + mây trôi — chèn NGOÀI khung (sau khung che)
+components.html("""
+<script>
+(function(){
+    var doc = window.parent.document;
+    // Xóa lớp cũ nếu có (tránh nhân đôi khi rerun)
+    var old = doc.getElementById('deco-layer-outer');
+    if (old) old.remove();
+    var oldStyle = doc.getElementById('deco-style');
+    if (oldStyle) oldStyle.remove();
+
+    // CSS
+    var css = doc.createElement('style');
+    css.id = 'deco-style';
+    css.textContent = `
+      #deco-layer-outer{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+      #deco-layer-outer .cloud{position:fixed;font-size:2.8rem;opacity:.5;animation:drift linear infinite;}
+      @keyframes drift{from{transform:translateX(-140px);}to{transform:translateX(112vw);}}
+      #deco-layer-outer .petal{position:fixed;top:-40px;font-size:1.1rem;animation:fall linear infinite;}
+      @keyframes fall{0%{transform:translateY(-40px) translateX(0) rotate(0);opacity:0;}12%{opacity:.85;}100%{transform:translateY(106vh) translateX(50px) rotate(360deg);opacity:.65;}}
+      #deco-layer-outer .bird{position:fixed;font-size:1.3rem;opacity:.45;animation:flyby linear infinite;}
+      @keyframes flyby{from{transform:translateX(-90px) translateY(0);}50%{transform:translateX(50vw) translateY(-22px);}to{transform:translateX(112vw) translateY(8px);}}
+    `;
+    doc.head.appendChild(css);
+
+    // Lớp trang trí
+    var d = doc.createElement('div');
+    d.id = 'deco-layer-outer';
+    d.innerHTML = `
+      <div class="cloud" style="top:7%; left:0; animation-duration:52s;">☁️</div>
+      <div class="cloud" style="top:15%; left:0; animation-duration:70s; animation-delay:9s; font-size:2rem;">☁️</div>
+      <div class="cloud" style="top:4%; left:0; animation-duration:84s; animation-delay:22s; font-size:2.3rem; opacity:.4;">☁️</div>
+      <div class="bird" style="top:21%; animation-duration:38s; animation-delay:6s;">🐦</div>
+      <div class="bird" style="top:25%; animation-duration:46s; animation-delay:20s; font-size:1rem;">🐦</div>
+      <div class="petal" style="left:3%; animation-duration:12s; animation-delay:0s;">🌸</div>
+      <div class="petal" style="left:8%; animation-duration:15s; animation-delay:3s;">🌸</div>
+      <div class="petal" style="left:13%; animation-duration:10s; animation-delay:6s; font-size:.9rem;">🌸</div>
+      <div class="petal" style="left:5%; animation-duration:17s; animation-delay:9s; font-size:.8rem;">🌸</div>
+      <div class="petal" style="left:83%; animation-duration:13s; animation-delay:1s;">🌸</div>
+      <div class="petal" style="left:89%; animation-duration:16s; animation-delay:4s;">🌸</div>
+      <div class="petal" style="left:94%; animation-duration:11s; animation-delay:7s; font-size:.9rem;">🌸</div>
+      <div class="petal" style="left:86%; animation-duration:18s; animation-delay:10s; font-size:.8rem;">🌸</div>
+    `;
+    // Chèn làm CON ĐẦU TIÊN của .stApp → nằm trên nền Phú Sĩ, dưới khung nội dung (khung đặc che)
+    var app = doc.querySelector('.stApp') || doc.body;
+    app.insertBefore(d, app.firstChild);
+})();
+</script>
+""", height=0)
 
 # Menu selection (session state)
 if "menu" not in st.session_state:
