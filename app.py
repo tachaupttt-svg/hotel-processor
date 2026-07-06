@@ -893,70 +893,78 @@ if st.session_state.menu == "daily":
 
     st.write("")
 
-    if st.button("⚡ Bắt đầu xử lý", type="primary", disabled=xlsx_file is None, use_container_width=True):
+    if st.button("⚡ Bắt đầu xử lý", type="primary", disabled=(xlsx_file is None and xls_file is None), use_container_width=True):
         with st.spinner("Đang xử lý..."):
             try:
-                xlsx_bytes = xlsx_file.read()
-                progress = st.progress(0, text="Quy đổi tỷ giá...")
-
-                wb, conv = process_xlsx(xlsx_bytes, rate)
-                df = pd.read_excel(io.BytesIO(xlsx_bytes))
-                df_intl = df[df['LOẠI KHÁCH']=='Quốc tế'].reset_index(drop=True)
-                df_vn   = df[df['LOẠI KHÁCH']=='Việt Nam'].reset_index(drop=True)
-
-                progress.progress(15, text="Tách file Quốc tế / Việt Nam...")
-                wb_intl = split_wb(wb, 'Quốc tế')
-                wb_vn   = split_wb(wb, 'Việt Nam')
-
-                progress.progress(35, text="Điền mẫu KBTT...")
-                wb_kbtt = build_kbtt(df_intl)
-
-                progress.progress(55, text="Điền mẫu Thông báo lưu trú VNM...")
-                wb_vnm, gks_cnt, gbl_cnt = build_vnm(df_vn)
-
-                progress.progress(75, text="Đóng gói ZIP...")
-
+                progress = st.progress(0, text="Bắt đầu...")
                 zip_buf = io.BytesIO()
+                files_made = []
+                has_xlsx = xlsx_file is not None
+                has_dk14 = False
+                conv = 0; gks_cnt = 0; gbl_cnt = 0
+                df = None; df_intl = None; df_vn = None
+
                 with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
-                    zf.writestr(f'converted_{date_str}.xlsx',      wb_to_bytes(wb))
-                    zf.writestr(f'KhachQuocTe_{date_str}.xlsx',    wb_to_bytes(wb_intl))
-                    zf.writestr(f'KhachVietNam_{date_str}.xlsx',   wb_to_bytes(wb_vn))
-                    zf.writestr(f'ho_so_KBTT_NNN_{date_str}.xlsx', wb_to_bytes(wb_kbtt))
-                    zf.writestr(f'thong_bao_luu_tru_VNM_{date_str}.xlsx', wb_to_bytes(wb_vnm))
-                    has_dk14 = False
+                    # ── Xử lý file XLSX (nếu có) ──
+                    if has_xlsx:
+                        progress.progress(10, text="Quy đổi tỷ giá...")
+                        xlsx_bytes = xlsx_file.read()
+                        wb, conv = process_xlsx(xlsx_bytes, rate)
+                        df = pd.read_excel(io.BytesIO(xlsx_bytes))
+                        df_intl = df[df['LOẠI KHÁCH']=='Quốc tế'].reset_index(drop=True)
+                        df_vn   = df[df['LOẠI KHÁCH']=='Việt Nam'].reset_index(drop=True)
+
+                        progress.progress(30, text="Tách file Quốc tế / Việt Nam...")
+                        wb_intl = split_wb(wb, 'Quốc tế')
+                        wb_vn   = split_wb(wb, 'Việt Nam')
+
+                        progress.progress(45, text="Điền mẫu KBTT...")
+                        wb_kbtt = build_kbtt(df_intl)
+
+                        progress.progress(60, text="Điền mẫu Thông báo lưu trú VNM...")
+                        wb_vnm, gks_cnt, gbl_cnt = build_vnm(df_vn)
+
+                        zf.writestr(f'converted_{date_str}.xlsx',      wb_to_bytes(wb))
+                        zf.writestr(f'KhachQuocTe_{date_str}.xlsx',    wb_to_bytes(wb_intl))
+                        zf.writestr(f'KhachVietNam_{date_str}.xlsx',   wb_to_bytes(wb_vn))
+                        zf.writestr(f'ho_so_KBTT_NNN_{date_str}.xlsx', wb_to_bytes(wb_kbtt))
+                        zf.writestr(f'thong_bao_luu_tru_VNM_{date_str}.xlsx', wb_to_bytes(wb_vnm))
+                        files_made += ["📄 converted (file chung)", "🌍 KhachQuocTe", "🇻🇳 KhachVietNam",
+                                       "📝 KBTT NNN", "📑 Thông báo lưu trú VNM"]
+
+                    # ── Xử lý file ĐK14 (độc lập, chỉ cần file XLS) ──
                     if xls_file:
                         progress.progress(85, text="Điền mẫu ĐK14...")
                         xls_bytes = xls_file.read()
                         wb_dk14, dk_count = build_dk14(xls_bytes)
                         zf.writestr(f'dk14_{date_str}.xlsx', wb_to_bytes(wb_dk14))
                         has_dk14 = True
+                        files_made.append("🚔 ĐK14")
 
                 progress.progress(100, text="Hoàn tất!")
                 progress.empty()
 
                 st.success("✅ Xử lý hoàn tất!")
 
-                c1,c2,c3,c4 = st.columns(4)
-                c1.metric("Tổng khách", len(df))
-                c2.metric("Quốc tế", len(df_intl))
-                c3.metric("Việt Nam", len(df_vn))
-                c4.metric("GKS + GBL", f"{gks_cnt} + {gbl_cnt}")
+                # Thống kê (chỉ hiện nếu có XLSX)
+                if has_xlsx:
+                    c1,c2,c3,c4 = st.columns(4)
+                    c1.metric("Tổng khách", len(df))
+                    c2.metric("Quốc tế", len(df_intl))
+                    c3.metric("Việt Nam", len(df_vn))
+                    c4.metric("GKS + GBL", f"{gks_cnt} + {gbl_cnt}")
+                    st.info(f"💱 Đã quy đổi tỷ giá cho **{conv}** ô (đã tô vàng)")
 
-                st.info(f"💱 Đã quy đổi tỷ giá cho **{conv}** ô (đã tô vàng)")
+                    unknown_nats = []
+                    for q in df_intl.get('QUỐC TỊCH', pd.Series([], dtype=str)).dropna().unique():
+                        mapped = lookup_nat_kbtt(q)
+                        if not _re.match(r'^[A-Z]{2,3} - ', str(mapped)):
+                            unknown_nats.append(str(q))
+                    if unknown_nats:
+                        st.warning("⚠️ Quốc tịch chưa có mã (giữ nguyên tên, cần kiểm tra): " + ", ".join(unknown_nats))
+                elif has_dk14:
+                    st.info("ℹ️ Chỉ tạo file ĐK14 (không có file XLSX dữ liệu khách).")
 
-                # Cảnh báo quốc tịch chưa nhận diện
-                unknown_nats = []
-                for q in df_intl.get('QUỐC TỊCH', pd.Series([], dtype=str)).dropna().unique():
-                    mapped = lookup_nat_kbtt(q)
-                    if not _re.match(r'^[A-Z]{2,3} - ', str(mapped)):
-                        unknown_nats.append(str(q))
-                if unknown_nats:
-                    st.warning("⚠️ Quốc tịch chưa có mã (giữ nguyên tên, cần kiểm tra): " + ", ".join(unknown_nats))
-
-                files_made = ["📄 converted (file chung)", "🌍 KhachQuocTe", "🇻🇳 KhachVietNam",
-                              "📝 KBTT NNN", "📑 Thông báo lưu trú VNM"]
-                if has_dk14:
-                    files_made.append("🚔 ĐK14")
                 st.markdown("**File đã tạo:** " + " · ".join(files_made))
 
                 st.download_button(
