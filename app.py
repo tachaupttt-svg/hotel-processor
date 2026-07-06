@@ -884,15 +884,15 @@ st.markdown("""
     }
     .menu-card {
         border-radius: 12px; padding: 1.5rem 1.4rem; margin-bottom: 0.6rem;
-        border: 1px solid rgba(255,255,255,0.4);
-        background: rgba(255,255,255,0.10);
-        backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+        border: 1px solid rgba(255,255,255,0.7);
+        background: rgba(255,255,255,0.85);
+        backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
         transition: all 0.18s ease; min-height: 150px;
         animation: fadeIn 0.5s ease 0.15s both;
     }
     .menu-card:hover {
-        background: rgba(255,255,255,0.20);
-        border-color: rgba(255,255,255,0.6); box-shadow: 0 2px 14px rgba(31,52,96,0.10);
+        background: rgba(255,255,255,0.95);
+        border-color: rgba(255,255,255,0.8); box-shadow: 0 2px 14px rgba(31,52,96,0.10);
     }
     .menu-icon {font-size: 1.9rem; margin-bottom: 0.7rem; display: block;}
     .menu-title {font-size: 1.02rem; font-weight: 650; color: #1a1a1a; margin-bottom: 0.35rem; letter-spacing: -0.01em;}
