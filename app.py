@@ -1020,6 +1020,65 @@ components.html("""
 </script>
 """, height=64)
 
+# Hiệu ứng trang trí: hoa anh đào rơi + mây trôi (2 bên)
+st.markdown("""
+<style>
+    /* Lớp trang trí nền, không chắn thao tác */
+    .deco-layer {
+        position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+    }
+    /* Mây trôi */
+    .cloud {
+        position: fixed; font-size: 2.8rem; opacity: 0.55;
+        animation: drift linear infinite;
+    }
+    @keyframes drift {
+        from { transform: translateX(-120px); }
+        to   { transform: translateX(110vw); }
+    }
+    /* Hoa anh đào rơi */
+    .petal {
+        position: fixed; top: -40px; font-size: 1.1rem;
+        animation: fall linear infinite; opacity: 0.85;
+    }
+    @keyframes fall {
+        0%   { transform: translateY(-40px) translateX(0) rotate(0deg); opacity: 0; }
+        10%  { opacity: 0.85; }
+        100% { transform: translateY(105vh) translateX(60px) rotate(360deg); opacity: 0.7; }
+    }
+    /* Chim bay */
+    .bird {
+        position: fixed; font-size: 1.3rem; opacity: 0.5;
+        animation: flyby linear infinite;
+    }
+    @keyframes flyby {
+        from { transform: translateX(-80px) translateY(0); }
+        50%  { transform: translateX(50vw) translateY(-25px); }
+        to   { transform: translateX(110vw) translateY(10px); }
+    }
+</style>
+<div class="deco-layer">
+    <!-- Mây -->
+    <div class="cloud" style="top:8%;  left:0;  animation-duration:48s;">☁️</div>
+    <div class="cloud" style="top:16%; left:0;  animation-duration:65s; animation-delay:8s; font-size:2rem;">☁️</div>
+    <div class="cloud" style="top:5%;  left:0;  animation-duration:80s; animation-delay:20s; font-size:2.3rem; opacity:0.4;">☁️</div>
+    <!-- Chim -->
+    <div class="bird" style="top:22%; animation-duration:35s; animation-delay:5s;">🐦</div>
+    <div class="bird" style="top:26%; animation-duration:42s; animation-delay:18s; font-size:1rem;">🐦</div>
+    <!-- Hoa anh đào rơi (2 bên) -->
+    <div class="petal" style="left:4%;  animation-duration:11s; animation-delay:0s;">🌸</div>
+    <div class="petal" style="left:9%;  animation-duration:14s; animation-delay:3s;">🌸</div>
+    <div class="petal" style="left:14%; animation-duration:9s;  animation-delay:6s; font-size:0.9rem;">🌸</div>
+    <div class="petal" style="left:19%; animation-duration:13s; animation-delay:2s;">🌸</div>
+    <div class="petal" style="left:6%;  animation-duration:16s; animation-delay:9s; font-size:0.8rem;">🌸</div>
+    <div class="petal" style="left:82%; animation-duration:12s; animation-delay:1s;">🌸</div>
+    <div class="petal" style="left:88%; animation-duration:15s; animation-delay:4s;">🌸</div>
+    <div class="petal" style="left:93%; animation-duration:10s; animation-delay:7s; font-size:0.9rem;">🌸</div>
+    <div class="petal" style="left:96%; animation-duration:13s; animation-delay:2s;">🌸</div>
+    <div class="petal" style="left:85%; animation-duration:17s; animation-delay:10s; font-size:0.8rem;">🌸</div>
+</div>
+""", unsafe_allow_html=True)
+
 # Menu selection (session state)
 if "menu" not in st.session_state:
     st.session_state.menu = None
