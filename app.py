@@ -868,8 +868,8 @@ if not st.session_state.auth_ok:
         .login-box h2 {color: #1a1a1a; font-size: 1.3rem; font-weight: 700; margin: 0.6rem 0 0.3rem; letter-spacing: -0.02em;}
         .login-box p {color: #9b9b9b; font-size: 0.85rem; margin: 0;}
         .stTextInput input {border-radius: 8px !important; border-color: #e4e4e4 !important;}
-        .stButton button[kind="primary"] {background: #1a1a1a; border-color: #1a1a1a; color: #fff; border-radius: 8px; font-weight: 600;}
-        .stButton button[kind="primary"]:hover {background: #333; border-color: #333;}
+        .stButton button[kind="primary"], .stFormSubmitButton button {background: #1a1a1a; border-color: #1a1a1a; color: #fff; border-radius: 8px; font-weight: 600;}
+        .stButton button[kind="primary"]:hover, .stFormSubmitButton button:hover {background: #333; border-color: #333;}
     </style>
     """, unsafe_allow_html=True)
 
@@ -881,9 +881,13 @@ if not st.session_state.auth_ok:
     </div>
     """, unsafe_allow_html=True)
 
-    st.text_input("👤 Tên đăng nhập", key="login_user", placeholder="Nhập tên đăng nhập")
-    st.text_input("🔒 Mật khẩu", key="login_pass", type="password", placeholder="Nhập mật khẩu")
-    st.button("Đăng nhập →", type="primary", use_container_width=True, on_click=_check_login)
+    # Dùng form → nhấn Enter ở ô nhập sẽ tự đăng nhập
+    with st.form("login_form", clear_on_submit=False):
+        st.text_input("👤 Tên đăng nhập", key="login_user", placeholder="Nhập tên đăng nhập")
+        st.text_input("🔒 Mật khẩu", key="login_pass", type="password", placeholder="Nhập mật khẩu")
+        submitted = st.form_submit_button("Đăng nhập →", type="primary", use_container_width=True)
+        if submitted:
+            _check_login()
 
     if st.session_state.get("login_error"):
         st.error("❌ Tên đăng nhập hoặc mật khẩu không đúng!")
@@ -961,7 +965,7 @@ st.markdown("""
     .stButton button[kind="primary"] {
         background: #1a1a1a; border-color: #1a1a1a; color: #fff;
     }
-    .stButton button[kind="primary"]:hover {background: #333; border-color: #333;}
+    .stButton button[kind="primary"]:hover, .stFormSubmitButton button:hover {background: #333; border-color: #333;}
     .stDownloadButton button {
         border-radius: 8px; font-weight: 600; padding: 0.75rem;
         background: #1a1a1a; border-color: #1a1a1a; color: #fff;
