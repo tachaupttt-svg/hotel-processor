@@ -932,6 +932,119 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Minimalist welcome header — lời chào + đồng hồ tính theo GIỜ MÁY NGƯỜI DÙNG (JS)
+# Splash chào mừng hoạt hình — chỉ hiện 1 lần mỗi phiên tab (sessionStorage), click để bỏ qua
+components.html("""
+<script>
+(function(){
+    var doc = window.parent.document;
+    var win = window.parent;
+    try {
+        if (win.sessionStorage.getItem('hp_splash_shown')) return;
+        win.sessionStorage.setItem('hp_splash_shown', '1');
+    } catch(e) { return; }
+
+    var old = doc.getElementById('splash-overlay'); if (old) old.remove();
+    var oldCss = doc.getElementById('splash-style'); if (oldCss) oldCss.remove();
+
+    var h = new Date().getHours();
+    var isNight = (h >= 18 || h < 5);
+    var greet = (h < 12) ? "Good morning" : (h < 18) ? "Good afternoon" : "Good evening";
+
+    var css = doc.createElement('style');
+    css.id = 'splash-style';
+    css.textContent = `
+      #splash-overlay{position:fixed;inset:0;z-index:999999;overflow:hidden;cursor:pointer;
+        display:flex;align-items:center;justify-content:center;
+        transition:opacity .8s ease, transform .8s ease;}
+      #splash-overlay.sp-day{background:linear-gradient(180deg,#aee1f9 0%,#fde3c1 60%,#ffd1a1 100%);}
+      #splash-overlay.sp-night{background:linear-gradient(180deg,#16213e 0%,#3a3f66 65%,#6b5b8a 100%);}
+      #splash-overlay.splash-exit{opacity:0;transform:scale(1.05);pointer-events:none;}
+
+      .sp-sun{position:absolute;left:50%;bottom:130px;width:110px;height:110px;margin-left:-55px;border-radius:50%;
+        background:radial-gradient(circle at 40% 35%,#fff3c4,#ffcf6b 60%,#ffb347);
+        box-shadow:0 0 70px 28px rgba(255,195,100,.5);animation:sp-rise 2.4s ease-out both;}
+      .sp-moon{position:absolute;left:50%;bottom:200px;width:90px;height:90px;margin-left:-45px;border-radius:50%;
+        background:radial-gradient(circle at 38% 35%,#fffdf2,#ffe9a8 65%,#f5d67a);
+        box-shadow:0 0 55px 20px rgba(255,240,180,.35);animation:sp-rise 2.4s ease-out both;}
+      @keyframes sp-rise{from{transform:translateY(190px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+
+      .sp-star{position:absolute;color:#fff;font-size:.8rem;animation:sp-twinkle 1.8s ease-in-out infinite;}
+      @keyframes sp-twinkle{0%,100%{opacity:.25;}50%{opacity:.95;}}
+
+      .sp-wave{position:absolute;left:0;right:0;bottom:0;height:130px;pointer-events:none;}
+      .sp-wave svg{position:absolute;bottom:0;left:0;width:200%;height:100%;animation:sp-wavemove 8s linear infinite;}
+      .sp-wave svg.w2{opacity:.55;animation-duration:13s;animation-direction:reverse;bottom:14px;}
+      @keyframes sp-wavemove{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+      #splash-overlay.sp-day .sp-wave path{fill:#4fb3d9;}
+      #splash-overlay.sp-day .sp-wave svg.w2 path{fill:#7fd0ec;}
+      #splash-overlay.sp-night .sp-wave path{fill:#2e4a72;}
+      #splash-overlay.sp-night .sp-wave svg.w2 path{fill:#3d5f8f;}
+
+      .sp-palm{position:absolute;bottom:100px;left:6%;font-size:4.8rem;transform-origin:bottom center;
+        animation:sp-sway 3.5s ease-in-out infinite;filter:drop-shadow(0 4px 6px rgba(0,0,0,.15));}
+      @keyframes sp-sway{0%,100%{transform:rotate(-3deg);}50%{transform:rotate(3deg);}}
+      .sp-umbrella{position:absolute;bottom:104px;right:8%;font-size:3.6rem;animation:sp-pop .7s cubic-bezier(.34,1.56,.64,1) 1s both;}
+      .sp-bird{position:absolute;top:16%;left:-70px;font-size:1.5rem;opacity:0;animation:sp-fly 5s linear .6s forwards;}
+      .sp-bird.b2{top:22%;font-size:1.1rem;animation-delay:1.4s;animation-duration:6s;}
+      @keyframes sp-fly{0%{transform:translateX(0) translateY(0);opacity:0;}8%{opacity:.85;}
+        50%{transform:translateX(55vw) translateY(-26px);opacity:.85;}100%{transform:translateX(112vw) translateY(6px);opacity:.85;}}
+
+      .sp-center{position:relative;text-align:center;z-index:2;
+        font-family:'Source Sans Pro','Segoe UI',Arial,sans-serif;padding:0 1rem;}
+      .sp-hello{font-size:2.1rem;font-weight:800;letter-spacing:-0.02em;margin:0;
+        animation:sp-pop .8s cubic-bezier(.34,1.56,.64,1) .5s both;}
+      #splash-overlay.sp-day .sp-hello{color:#1f3460;text-shadow:0 2px 12px rgba(255,255,255,.6);}
+      #splash-overlay.sp-night .sp-hello{color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.35);}
+      .sp-sub{font-size:.85rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;margin-top:.6rem;
+        animation:sp-pop .8s ease .9s both;}
+      #splash-overlay.sp-day .sp-sub{color:#4a6a9d;}
+      #splash-overlay.sp-night .sp-sub{color:#cfc8e8;}
+      .sp-hand{display:inline-block;transform-origin:72% 72%;animation:sp-wavehand 1.7s ease .9s infinite;}
+      @keyframes sp-wavehand{0%,55%,100%{transform:rotate(0);}10%,30%{transform:rotate(20deg);}20%,40%{transform:rotate(-10deg);}}
+      @keyframes sp-pop{from{opacity:0;transform:translateY(18px) scale(.92);}to{opacity:1;transform:translateY(0) scale(1);}}
+      .sp-skip{position:absolute;bottom:16px;left:0;right:0;text-align:center;font-size:.72rem;
+        letter-spacing:.06em;opacity:.55;z-index:3;font-family:'Segoe UI',Arial,sans-serif;}
+      #splash-overlay.sp-day .sp-skip{color:#1f3460;}
+      #splash-overlay.sp-night .sp-skip{color:#fff;}
+    `;
+    doc.head.appendChild(css);
+
+    var wavePath = "M0,60 Q75,95 150,60 T300,60 T450,60 T600,60 T750,60 T900,60 T1050,60 T1200,60 T1350,60 T1500,60 T1650,60 T1800,60 T1950,60 T2100,60 T2250,60 T2400,60 L2400,130 L0,130 Z";
+    var waveSvg = '<svg viewBox="0 0 2400 130" preserveAspectRatio="none"><path d="' + wavePath + '"/></svg>';
+
+    var stars = '';
+    if (isNight) {
+        for (var i = 0; i < 14; i++) {
+            stars += '<div class="sp-star" style="left:' + (4 + Math.random()*92) + '%;top:' + (3 + Math.random()*38) + '%;animation-delay:' + (Math.random()*1.8).toFixed(2) + 's;">✦</div>';
+        }
+    }
+
+    var s = doc.createElement('div');
+    s.id = 'splash-overlay';
+    s.className = isNight ? 'sp-night' : 'sp-day';
+    s.innerHTML =
+        stars +
+        (isNight ? '<div class="sp-moon"></div>' : '<div class="sp-sun"></div>') +
+        '<div class="sp-bird">🕊️</div><div class="sp-bird b2">🕊️</div>' +
+        '<div class="sp-palm">🌴</div><div class="sp-umbrella">⛱️</div>' +
+        '<div class="sp-wave">' + waveSvg + waveSvg.replace('<svg', '<svg class="w2"') + '</div>' +
+        '<div class="sp-center">' +
+          '<p class="sp-hello"><span class="sp-hand">👋</span> ' + greet + ', Ta Chau</p>' +
+          '<p class="sp-sub">Aquamarine Cam Ranh · Hotel Data Processor</p>' +
+        '</div>' +
+        '<div class="sp-skip">tap anywhere to skip</div>';
+    doc.body.appendChild(s);
+
+    function dismiss(){
+        s.classList.add('splash-exit');
+        setTimeout(function(){ s.remove(); var c = doc.getElementById('splash-style'); if (c) c.remove(); }, 850);
+    }
+    s.addEventListener('click', dismiss);
+    setTimeout(dismiss, 4200);
+})();
+</script>
+""", height=0)
+
 components.html("""
 <div style="
     display:flex; align-items:center; justify-content:space-between;
