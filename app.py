@@ -948,7 +948,6 @@ components.html("""
 
     var h = new Date().getHours();
     var isNight = (h >= 18 || h < 5);
-    var greet = (h < 12) ? "Good morning" : (h < 18) ? "Good afternoon" : "Good evening";
 
     var css = doc.createElement('style');
     css.id = 'splash-style';
@@ -989,23 +988,7 @@ components.html("""
       @keyframes sp-fly{0%{transform:translateX(0) translateY(0);opacity:0;}8%{opacity:.85;}
         50%{transform:translateX(55vw) translateY(-26px);opacity:.85;}100%{transform:translateX(112vw) translateY(6px);opacity:.85;}}
 
-      .sp-center{position:relative;text-align:center;z-index:2;
-        font-family:'Source Sans Pro','Segoe UI',Arial,sans-serif;padding:0 1rem;}
-      .sp-hello{font-size:2.1rem;font-weight:800;letter-spacing:-0.02em;margin:0;
-        animation:sp-pop .8s cubic-bezier(.34,1.56,.64,1) .5s both;}
-      #splash-overlay.sp-day .sp-hello{color:#1f3460;text-shadow:0 2px 12px rgba(255,255,255,.6);}
-      #splash-overlay.sp-night .sp-hello{color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.35);}
-      .sp-sub{font-size:.85rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;margin-top:.6rem;
-        animation:sp-pop .8s ease .9s both;}
-      #splash-overlay.sp-day .sp-sub{color:#4a6a9d;}
-      #splash-overlay.sp-night .sp-sub{color:#cfc8e8;}
-      .sp-hand{display:inline-block;transform-origin:72% 72%;animation:sp-wavehand 1.7s ease .9s infinite;}
-      @keyframes sp-wavehand{0%,55%,100%{transform:rotate(0);}10%,30%{transform:rotate(20deg);}20%,40%{transform:rotate(-10deg);}}
       @keyframes sp-pop{from{opacity:0;transform:translateY(18px) scale(.92);}to{opacity:1;transform:translateY(0) scale(1);}}
-      .sp-skip{position:absolute;bottom:16px;left:0;right:0;text-align:center;font-size:.72rem;
-        letter-spacing:.06em;opacity:.55;z-index:3;font-family:'Segoe UI',Arial,sans-serif;}
-      #splash-overlay.sp-day .sp-skip{color:#1f3460;}
-      #splash-overlay.sp-night .sp-skip{color:#fff;}
     `;
     doc.head.appendChild(css);
 
@@ -1027,12 +1010,7 @@ components.html("""
         (isNight ? '<div class="sp-moon"></div>' : '<div class="sp-sun"></div>') +
         '<div class="sp-bird">🕊️</div><div class="sp-bird b2">🕊️</div>' +
         '<div class="sp-palm">🌴</div><div class="sp-umbrella">⛱️</div>' +
-        '<div class="sp-wave">' + waveSvg + waveSvg.replace('<svg', '<svg class="w2"') + '</div>' +
-        '<div class="sp-center">' +
-          '<p class="sp-hello"><span class="sp-hand">👋</span> ' + greet + ', Ta Chau</p>' +
-          '<p class="sp-sub">Aquamarine Cam Ranh · Hotel Data Processor</p>' +
-        '</div>' +
-        '<div class="sp-skip">tap anywhere to skip</div>';
+        '<div class="sp-wave">' + waveSvg + waveSvg.replace('<svg', '<svg class="w2"') + '</div>';
     doc.body.appendChild(s);
 
     function dismiss(){
