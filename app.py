@@ -1024,6 +1024,107 @@ components.html("""
 </script>
 """, height=0)
 
+# ---- Nền đổi theo thời gian trong ngày (sáng / trưa-chiều / tối) — theo giờ máy người dùng ----
+import base64 as _b64
+
+def _fuji_svg(p):
+    """Tạo SVG cảnh núi Phú Sĩ với bảng màu p."""
+    stars = ""
+    if p.get("stars"):
+        import random as _rd
+        _rd.seed(7)  # cố định vị trí sao để base64 không đổi giữa các rerun
+        dots = "".join(
+            '<circle cx="%d" cy="%d" r="%.1f" fill="#ffffff" opacity="%.2f"/>'
+            % (_rd.randint(30, 1410), _rd.randint(20, 260), _rd.uniform(1.2, 2.6), _rd.uniform(0.4, 0.95))
+            for _ in range(26)
+        )
+        stars = '<g>' + dots + '</g>'
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">'
+        '<defs>'
+        '<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0%" stop-color="{p["sky0"]}"/><stop offset="50%" stop-color="{p["sky1"]}"/><stop offset="100%" stop-color="{p["sky2"]}"/>'
+        '</linearGradient>'
+        '<linearGradient id="mtn" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0%" stop-color="{p["mtn0"]}"/><stop offset="100%" stop-color="{p["mtn1"]}"/>'
+        '</linearGradient>'
+        '<linearGradient id="mtn2" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0%" stop-color="{p["far0"]}"/><stop offset="100%" stop-color="{p["far1"]}"/>'
+        '</linearGradient>'
+        '</defs>'
+        '<rect width="1440" height="900" fill="url(#sky)"/>'
+        + stars +
+        f'<circle cx="{p["orb_x"]}" cy="{p["orb_y"]}" r="{p["orb_r"] + 40}" fill="{p["orb"]}" opacity="0.18"/>'
+        f'<circle cx="{p["orb_x"]}" cy="{p["orb_y"]}" r="{p["orb_r"]}" fill="{p["orb"]}" opacity="{p["orb_op"]}"/>'
+        '<path d="M0 560 Q 240 500 480 545 T 960 530 T 1440 555 L1440 900 L0 900 Z" fill="url(#mtn2)" opacity="0.55"/>'
+        '<path d="M480 620 L720 300 L960 620 Z" fill="url(#mtn)"/>'
+        f'<path d="M655 385 L720 300 L790 390 Q 760 372 740 392 Q 720 372 700 392 Q 680 375 655 385 Z" fill="{p["snow"]}"/>'
+        f'<path d="M690 430 L705 420 L698 455 L685 460 Z" fill="{p["snow"]}" opacity="0.9"/>'
+        f'<path d="M745 428 L735 418 L748 452 L760 458 Z" fill="{p["snow"]}" opacity="0.9"/>'
+        f'<ellipse cx="720" cy="628" rx="290" ry="26" fill="#ffffff" opacity="{p["mist_op"]}"/>'
+        f'<path d="M0 660 Q 360 630 720 655 T 1440 660 L1440 900 L0 900 Z" fill="{p["land"]}" opacity="0.6"/>'
+        f'<g opacity="{p["blossom_op"]}" fill="{p["blossom"]}">'
+        '<circle cx="180" cy="700" r="7"/><circle cx="205" cy="690" r="6"/><circle cx="195" cy="712" r="6"/>'
+        '<circle cx="1260" cy="680" r="7"/><circle cx="1285" cy="695" r="6"/><circle cx="1270" cy="668" r="5"/>'
+        '</g></svg>'
+    )
+
+_BG_PALETTES = {
+    # Sáng (5h–11h): bình minh hồng cam, mặt trời thấp ấm áp
+    "morning": dict(sky0="#bfe3f5", sky1="#ffd9c2", sky2="#ffc9a3",
+                    orb="#ffb56b", orb_x=1080, orb_y=380, orb_r=90, orb_op="0.85",
+                    mtn0="#8fa8c8", mtn1="#7089ad", far0="#e0c4d0", far1="#c9aec2",
+                    snow="#fff6ee", mist_op="0.45", land="#f2ddc9",
+                    blossom="#f2a9c4", blossom_op="0.55"),
+    # Trưa/chiều (11h–17h): trời xanh trong, nắng cao rực rỡ
+    "noon": dict(sky0="#9fd4f5", sky1="#c9e8fa", sky2="#eaf6fd",
+                 orb="#fff3b0", orb_x=1080, orb_y=160, orb_r=80, orb_op="0.9",
+                 mtn0="#7f9cc0", mtn1="#5f7fa8", far0="#b8cfe6", far1="#9fbdd9",
+                 snow="#fbfdff", mist_op="0.45", land="#dce9dd",
+                 blossom="#f2c9d8", blossom_op="0.5"),
+    # Tối (17h–5h): trời tím đậm, trăng vàng và sao — đồng bộ với splash đêm
+    "night": dict(sky0="#16213e", sky1="#3a3f66", sky2="#6b5b8a",
+                  orb="#ffe9a8", orb_x=1080, orb_y=200, orb_r=70, orb_op="0.9",
+                  mtn0="#3d4a6b", mtn1="#2c3854", far0="#4a5680", far1="#3d4a6b",
+                  snow="#dfe6f5", mist_op="0.16", land="#3c3a55",
+                  blossom="#a86f8a", blossom_op="0.35", stars=True),
+}
+
+_BG_B64 = {k: _b64.b64encode(_fuji_svg(v).encode()).decode() for k, v in _BG_PALETTES.items()}
+
+_bg_switcher_js = """
+<script>
+(function(){
+    var doc = window.parent.document;
+    var BG = {
+        morning: "__B64_MORNING__",
+        noon: "__B64_NOON__",
+        night: "__B64_NIGHT__"
+    };
+    var current = null;
+    function pick(){
+        var h = new Date().getHours();
+        if (h >= 5 && h < 11) return 'morning';
+        if (h >= 11 && h < 17) return 'noon';
+        return 'night';
+    }
+    function apply(){
+        var app = doc.querySelector('.stApp');
+        if (!app) { setTimeout(apply, 300); return; }
+        var k = pick();
+        if (k === current) return;
+        current = k;
+        app.style.transition = 'background 1.2s ease';
+        app.style.background = 'url("data:image/svg+xml;base64,' + BG[k] + '") center 35% / cover no-repeat fixed';
+    }
+    apply();
+    setInterval(apply, 60000); // tự chuyển cảnh khi bước sang khung giờ khác
+})();
+</script>
+""".replace("__B64_MORNING__", _BG_B64["morning"]).replace("__B64_NOON__", _BG_B64["noon"]).replace("__B64_NIGHT__", _BG_B64["night"])
+
+components.html(_bg_switcher_js, height=0)
+
 components.html("""
 <div style="
     display:flex; align-items:center; justify-content:space-between;
