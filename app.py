@@ -1301,25 +1301,25 @@ def go_menu(name):
 
 # ── Tạo file ARR từ file Arrival (Book) Smile ──────────────────────────────
 def build_arr(book_bytes):
-    """Tạo file ARR: nhóm theo Conf#, mỗi booking 1 dòng + dòng phụ Cà Thẻ / Thu Tiền / LUNCH IN.
+    """Tạo file ARR định dạng in chuẩn (theo file mẫu arr_09_07):
+    - Nhóm theo Conf#: mỗi booking 1 dòng cao 126, Conf# chữ to 45 đậm nền xanh,
+      số phòng (J) chữ 40 đậm, viền thin toàn bộ, căn giữa, Times New Roman.
+    - Dòng phụ CÀ THẺ / THU TIỀN / LUNCH IN: cao 43.5, gộp C:I chữ 35 đậm nền xanh,
+      ô J gộp dọc từ dòng booking xuống hết dòng phụ.
+    - Cột A, G ẩn; ngày định dạng mm-dd-yy; in dọc scale 64%.
 
-    Quy tắc:
-    - Conf# trùng nhau (nhiều dòng khách/phòng) = 1 booking; cột J = số phòng UNIQUE
-      trong nhóm, loại phòng ảo 9000-9999 (posting master).
-    - Cột: A=số nội bộ (dòng đầu nhóm), C=Conf#, D=Arrival, E=Departure, F=Company,
-      G=deposit (cột 20 nếu có), I=Notice nguyên văn, J=số phòng.
-    - Dòng phụ (cột A lấy từ dòng THỨ HAI của nhóm nếu có):
-        · Company AGODA / EXPEDIA / CTRIP        → "CÀ THẺ"
-        · Company BOOKING.COM                    → "THU TIỀN"
-        · Notice chứa "RC PAY BF C/I"            → "THU TIỀN"
-          (lưu ý: "RC TA PAY BF C/I" KHÔNG tính — có chữ TA là đại lý trả)
-        · Notice chứa "LUNCH"                    → "LUNCH IN"
+    Quy tắc dữ liệu:
+    - Conf# trùng nhau = 1 booking; J = số phòng UNIQUE (loại phòng ảo 9000-9999).
+    - CÀ THẺ: Company AGODA/EXPEDIA/CTRIP · THU TIỀN: BOOKING.COM hoặc Notice chứa
+      "RC PAY BF C/I" (KHÔNG tính "RC TA PAY BF C/I") · LUNCH IN: Notice chứa "LUNCH".
     """
     import re as _re2
     import numpy as _np
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+    from openpyxl.styles.colors import Color
 
     df = pd.read_excel(io.BytesIO(book_bytes), header=None)
-    # Bỏ dòng tiêu đề (dòng chứa ô 'Conf#') nếu có
     hdr = None
     for i in range(min(5, len(df))):
         if any(str(v).strip() == 'Conf#' for v in df.iloc[i] if pd.notna(v)):
@@ -1334,30 +1334,67 @@ def build_arr(book_bytes):
 
     CA_THE = ('agoda', 'expedia', 'ctrip')
 
-    def _clean(v):
-        """Chuyển giá trị pandas/numpy về kiểu ghi được vào Excel."""
+    def _num_or_keep(v):
+        """int nếu là số, datetime giữ nguyên, còn lại trả chuỗi/None."""
+        import datetime as _dt
         if v is None or (not isinstance(v, str) and pd.isna(v)): return None
-        if isinstance(v, _np.floating): return float(v)
-        if isinstance(v, _np.integer): return int(v)
         if isinstance(v, pd.Timestamp): return v.to_pydatetime()
-        return v
+        if isinstance(v, _dt.datetime): return v
+        if isinstance(v, (_np.floating, float)):
+            f = float(v); return int(f) if f == int(f) else f
+        if isinstance(v, (_np.integer, int)): return int(v)
+        s = str(v).strip()
+        try:
+            f = float(s); return int(f) if f == int(f) else f
+        except Exception:
+            return s if s else None
 
-    rows = []
+    # ── Style theo file mẫu ──
+    _thin = Side(style='thin')
+    BORDER = Border(left=_thin, right=_thin, top=_thin, bottom=_thin)
+    CENTER = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    GREEN = PatternFill(fill_type='solid', fgColor=Color(theme=9, tint=0.7999816888943144))
+    F_BASE = Font(name='Times New Roman', size=17)
+    F_CONF = Font(name='Times New Roman', size=45, bold=True)
+    F_ROOM = Font(name='Times New Roman', size=40, bold=True)
+    F_EXTRA = Font(name='Times New Roman', size=35, bold=True)
+    DATE_FMT = 'mm-dd-yy'
+
+    wb = Workbook(); ws = wb.active; ws.title = 'Sheet1'
+    er = 0
     stats = {'bookings': 0, 'ca_the': 0, 'thu_tien': 0, 'lunch': 0}
+
+    def _style_row(r):
+        for ci in range(1, 11):
+            c = ws.cell(r, ci)
+            c.border = BORDER; c.alignment = CENTER
+            if c.font.name != 'Times New Roman': c.font = F_BASE
+
     for _conf, grp in data.groupby('conf', sort=False):
         first = grp.iloc[0]
-        # Số phòng unique, loại phòng ảo 9xxx
         rooms = grp[10].dropna().astype(str).str.strip()
         rooms = [r for r in rooms.unique() if r and not _re2.fullmatch(r'9\d{3}', r)]
         notice = str(first[46]).strip() if pd.notna(first[46]) else ''
         company = str(first[19]).strip() if pd.notna(first[19]) else ''
-        rows.append([_clean(first[0]), None, _clean(first[5]), _clean(first[13]),
-                     _clean(first[14]), company or None, _clean(first[20]), None,
-                     notice or None, float(len(rooms))])
+
+        # ── Dòng booking ──
+        er += 1
+        book_r = er
+        ws.row_dimensions[er].height = 126.0
+        _style_row(er)
+        vals = {1: _num_or_keep(first[0]), 3: _num_or_keep(first[5]),
+                4: _num_or_keep(first[13]), 5: _num_or_keep(first[14]),
+                6: company or None, 7: _num_or_keep(first[20]),
+                9: notice or None, 10: len(rooms)}
+        for ci, v in vals.items():
+            c = ws.cell(er, ci)
+            if v is not None: c.value = v
+            if hasattr(v, 'year'): c.number_format = DATE_FMT
+        ws.cell(er, 3).font = F_CONF; ws.cell(er, 3).fill = GREEN
+        ws.cell(er, 10).font = F_ROOM
         stats['bookings'] += 1
 
-        # Dòng phụ
-        extra_c0 = _clean(grp.iloc[1][0]) if len(grp) > 1 else None
+        # ── Dòng phụ ──
         comp_key = _norm_nat(company)
         labels = []
         if any(comp_key.startswith(x) for x in CA_THE):
@@ -1368,17 +1405,37 @@ def build_arr(book_bytes):
             labels.append('THU TIỀN'); stats['thu_tien'] += 1
         if 'LUNCH' in notice.upper():
             labels.append('LUNCH IN'); stats['lunch'] += 1
-        for lb in labels:
-            rows.append([extra_c0, None, lb, None, None, None, None, None, None, None])
 
-    from openpyxl import Workbook
-    wb = Workbook(); ws = wb.active; ws.title = 'Sheet1'
-    for r in rows:
-        ws.append(r)
-    # Độ rộng cột dễ đọc
-    for col, w in zip('ABCDEFGHIJ', [10, 4, 12, 20, 20, 24, 8, 4, 55, 6]):
+        extra_c0 = _num_or_keep(grp.iloc[1][0]) if len(grp) > 1 else None
+        for lb in labels:
+            er += 1
+            ws.row_dimensions[er].height = 43.5
+            _style_row(er)
+            if extra_c0 is not None: ws.cell(er, 1).value = extra_c0
+            ws.merge_cells(start_row=er, start_column=3, end_row=er, end_column=9)
+            c = ws.cell(er, 3); c.value = lb
+            c.font = F_EXTRA; c.fill = GREEN
+        if labels:
+            # Gộp ô J (số phòng) từ dòng booking xuống hết dòng phụ
+            ws.merge_cells(start_row=book_r, start_column=10, end_row=er, end_column=10)
+
+    # ── Cột: độ rộng + ẩn A, G ──
+    from openpyxl.utils import get_column_letter
+    widths = {'A': 0.0, 'C': 33.43, 'D': 15.29, 'E': 14.71, 'F': 20.71,
+              'G': 0.0, 'I': 50.71, 'J': 10.29}
+    for col, w in widths.items():
         ws.column_dimensions[col].width = w
+        if w == 0.0: ws.column_dimensions[col].hidden = True
+
+    # ── Thiết lập in như file mẫu ──
+    from openpyxl.worksheet.page import PageMargins
+    ws.page_setup.orientation = 'portrait'
+    ws.page_setup.scale = 64
+    ws.page_margins = PageMargins(left=0.7, right=0.45, top=0.0, bottom=0.0, header=0.3, footer=0.3)
+    ws.sheet_view.view = 'pageBreakPreview'
+
     return wb, stats
+
 
 
 if st.session_state.menu is None:
