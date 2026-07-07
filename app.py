@@ -841,14 +841,15 @@ st.markdown("""
     .stApp {
         background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNDQwIDkwMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgc2xpY2UiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0ic2t5IiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzlmZDRmNSIvPjxzdG9wIG9mZnNldD0iNTAlIiBzdG9wLWNvbG9yPSIjYzllOGZhIi8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZWFmNmZkIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9Im10biIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM3ZjljYzAiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM1ZjdmYTgiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0ibXRuMiIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNiOGNmZTYiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM5ZmJkZDkiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0id2F0ZXIiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjYmZlMGY1Ii8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjN2ZiNGRkIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjE0NDAiIGhlaWdodD0iOTAwIiBmaWxsPSJ1cmwoI3NreSkiLz48Y2lyY2xlIGN4PSIxMDgwIiBjeT0iMTYwIiByPSIxMjAiIGZpbGw9IiNmZmYzYjAiIG9wYWNpdHk9IjAuMTgiLz48Y2lyY2xlIGN4PSIxMDgwIiBjeT0iMTYwIiByPSI4MCIgZmlsbD0iI2ZmZjNiMCIgb3BhY2l0eT0iMC45Ii8+PHBhdGggZD0iTTAgNTYwIFEgMjQwIDUwMCA0ODAgNTQ1IFQgOTYwIDUzMCBUIDE0NDAgNTU1IEwxNDQwIDkwMCBMMCA5MDAgWiIgZmlsbD0idXJsKCNtdG4yKSIgb3BhY2l0eT0iMC41NSIvPjxwYXRoIGQ9Ik0tNDAgNjMwIEwzMDAgMjUwIEw2NDAgNjMwIFoiIGZpbGw9InVybCgjbXRuKSIvPjxwYXRoIGQ9Ik0yMTYgMzYxIEwzMDAgMjUwIEwzOTEgMzY3IFEgMzUyIDM0NCAzMjYgMzcwIFEgMzAwIDM0NCAyNzQgMzcwIFEgMjQ4IDM0OCAyMTYgMzYxIFoiIGZpbGw9IiNmYmZkZmYiLz48cGF0aCBkPSJNMjYxIDQxOSBMMjgxIDQwNiBMMjcxIDQ1MiBMMjU1IDQ1OCBaIiBmaWxsPSIjZmJmZGZmIiBvcGFjaXR5PSIwLjkiLz48cGF0aCBkPSJNMzMzIDQxNiBMMzIwIDQwMyBMMzM2IDQ0OCBMMzUyIDQ1NSBaIiBmaWxsPSIjZmJmZGZmIiBvcGFjaXR5PSIwLjkiLz48ZWxsaXBzZSBjeD0iMzAwIiBjeT0iNjM4IiByeD0iMzYwIiByeT0iMjYiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuNDUiLz48cGF0aCBkPSJNMCA2NjAgUSAzNjAgNjMwIDcyMCA2NTUgVCAxNDQwIDY2MCBMMTQ0MCA5MDAgTDAgOTAwIFoiIGZpbGw9InVybCgjd2F0ZXIpIi8+PHBhdGggZD0iTTAgNjYwIFEgMzYwIDYzMCA3MjAgNjU1IFQgMTQ0MCA2NjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjM1Ii8+PHBhdGggZD0iTS00MCA2NzIgTDMwMCA4NTIgTDY0MCA2NzIgWiIgZmlsbD0idXJsKCNtdG4pIiBvcGFjaXR5PSIwLjIyIi8+PHBhdGggZD0iTTI0MCA3MjYgTDMwMCA4MDAgTDM2NCA3MzAgUSAzMzYgNzQ1IDMyMiA3MjggUSAzMDAgNzQ2IDI4MiA3MjggUSAyNjIgNzQwIDI0MCA3MjYgWiIgZmlsbD0iI2ZiZmRmZiIgb3BhY2l0eT0iMC4xNCIvPjxlbGxpcHNlIGN4PSIxMDgwIiBjeT0iNzA1IiByeD0iNzIiIHJ5PSIxMyIgZmlsbD0iI2ZmZjNiMCIgb3BhY2l0eT0iMC4zIi8+PGVsbGlwc2UgY3g9IjEwNjgiIGN5PSI3MzUiIHJ4PSI0NiIgcnk9IjgiIGZpbGw9IiNmZmYzYjAiIG9wYWNpdHk9IjAuMTgiLz48ZWxsaXBzZSBjeD0iMTA5MCIgY3k9Ijc2MiIgcng9IjI4IiByeT0iNSIgZmlsbD0iI2ZmZjNiMCIgb3BhY2l0eT0iMC4xIi8+PHBhdGggZD0iTTEyMCA3MzAgcSA0NSAtOCA5MCAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMi41IiBvcGFjaXR5PSIwLjE0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNNTQwIDc4MCBxIDU1IC05IDExMCAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMi41IiBvcGFjaXR5PSIwLjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNODIwIDcyMCBxIDQwIC03IDgwIDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyLjUiIG9wYWNpdHk9IjAuMTQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik0zMDAgODMwIHEgNjAgLTkgMTIwIDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyLjUiIG9wYWNpdHk9IjAuMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTExNTAgODAwIHEgNTAgLTggMTAwIDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyLjUiIG9wYWNpdHk9IjAuMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxnIG9wYWNpdHk9IjAuNSIgZmlsbD0iI2YyYzlkOCI+PGNpcmNsZSBjeD0iMTgwIiBjeT0iNzAwIiByPSI3Ii8+PGNpcmNsZSBjeD0iMjA1IiBjeT0iNjkwIiByPSI2Ii8+PGNpcmNsZSBjeD0iMTk1IiBjeT0iNzEyIiByPSI2Ii8+PGNpcmNsZSBjeD0iMTI2MCIgY3k9IjY4MCIgcj0iNyIvPjxjaXJjbGUgY3g9IjEyODUiIGN5PSI2OTUiIHI9IjYiLz48Y2lyY2xlIGN4PSIxMjcwIiBjeT0iNjY4IiByPSI1Ii8+PC9nPjwvc3ZnPg==") center 35% / cover no-repeat fixed, #eaf4fb;
     }
-    /* Khối nội dung: kính mờ (frosted glass) — hơi trong để thấy núi Phú Sĩ, làm mờ nền cho dễ đọc */
+    /* Khối nội dung: kính mờ (frosted glass) — đủ đục để chữ luôn dễ đọc trên MỌI nền
+       (sáng/trưa/tối), cảnh Phú Sĩ + trăng nằm hai bên ngoài khung nên vẫn thấy trọn */
     .block-container {
-        background: rgba(255,255,255,0.22);
-        backdrop-filter: blur(10px) saturate(1.05);
-        -webkit-backdrop-filter: blur(10px) saturate(1.05);
-        border: 1px solid rgba(255,255,255,0.5);
+        background: rgba(255,255,255,0.82);
+        backdrop-filter: blur(14px) saturate(1.05);
+        -webkit-backdrop-filter: blur(14px) saturate(1.05);
+        border: 1px solid rgba(255,255,255,0.65);
         border-radius: 18px;
-        box-shadow: 0 8px 32px rgba(31,52,96,0.12);
+        box-shadow: 0 8px 32px rgba(31,52,96,0.14);
         margin-top: 1.5rem; margin-bottom: 1.5rem;
         position: relative; z-index: 5;
     }
@@ -882,7 +883,7 @@ st.markdown("""
     #live-clock {color: #6b6b6b; font-weight: 600;}
     @keyframes fadeIn {from {opacity: 0; transform: translateY(6px);} to {opacity: 1; transform: translateY(0);}}
     .section-label {
-        font-size: 0.7rem; font-weight: 600; color: #9b9b9b;
+        font-size: 0.7rem; font-weight: 650; color: #6b6b7e;
         text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem;
     }
     .menu-card {
@@ -1200,19 +1201,11 @@ components.html("""
         if (gt) gt.textContent = greet;
         if (dt) dt.textContent = WD[d.getDay()] + ", " + pad(d.getDate()) + "/" + pad(d.getMonth()+1) + "/" + d.getFullYear();
         if (lc) lc.textContent = pad(h) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
-        // Đổi màu ngày/giờ theo nền: tối (17h-5h) chữ sáng, ban ngày chữ đậm
+        // Khung nội dung nền trắng đục → chữ đậm cố định, dễ đọc mọi khung giờ
         var wrap = document.getElementById('date-wrap');
-        var night = (h >= 17 || h < 5);
         if (wrap && lc) {
-            if (night) {
-                wrap.style.color = '#e6e3f4';
-                wrap.style.textShadow = '0 1px 6px rgba(0,0,0,.35)';
-                lc.style.color = '#ffffff';
-            } else {
-                wrap.style.color = '#5a5a6e';
-                wrap.style.textShadow = '0 1px 4px rgba(255,255,255,.6)';
-                lc.style.color = '#33334a';
-            }
+            wrap.style.color = '#5a5a6e';
+            lc.style.color = '#33334a';
         }
     }
     setInterval(update, 1000);
