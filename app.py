@@ -836,7 +836,7 @@ st.markdown("""
     footer {visibility: hidden;}
     header[data-testid="stHeader"] {background: transparent;}
     .stApp {
-        background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNDQwIDkwMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgc2xpY2UiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJza3kiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2VhZjRmYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjQ1JSIgc3RvcC1jb2xvcj0iI2Y1ZThlZiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNmZGYzZWMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im10biIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjOWZiOGQ0Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzdmOWNjMCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibXRuMiIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjYzNkM2U2Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI2FlYzJkYSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPCEtLSBTa3kgLS0+CiAgPHJlY3Qgd2lkdGg9IjE0NDAiIGhlaWdodD0iOTAwIiBmaWxsPSJ1cmwoI3NreSkiLz4KICA8IS0tIFN1biAtLT4KICA8Y2lyY2xlIGN4PSIxMDgwIiBjeT0iMjIwIiByPSI5MCIgZmlsbD0iI2Y3ZDljNCIgb3BhY2l0eT0iMC42NSIvPgogIDwhLS0gRmFyIGhpbGxzIC0tPgogIDxwYXRoIGQ9Ik0wIDU2MCBRIDI0MCA1MDAgNDgwIDU0NSBUIDk2MCA1MzAgVCAxNDQwIDU1NSBMMTQ0MCA5MDAgTDAgOTAwIFoiIGZpbGw9InVybCgjbXRuMikiIG9wYWNpdHk9IjAuNTUiLz4KICA8IS0tIE10IEZ1amkgLS0+CiAgPHBhdGggZD0iTTQ4MCA2MjAgTDcyMCAzMDAgTDk2MCA2MjAgWiIgZmlsbD0idXJsKCNtdG4pIi8+CiAgPCEtLSBTbm93IGNhcCAtLT4KICA8cGF0aCBkPSJNNjU1IDM4NSBMNzIwIDMwMCBMNzkwIDM5MCBRIDc2MCAzNzIgNzQwIDM5MiBRIDcyMCAzNzIgNzAwIDM5MiBRIDY4MCAzNzUgNjU1IDM4NSBaIiBmaWxsPSIjZmJmZGZmIi8+CiAgPCEtLSBTbm93IHN0cmVha3MgLS0+CiAgPHBhdGggZD0iTTY5MCA0MzAgTDcwNSA0MjAgTDY5OCA0NTUgTDY4NSA0NjAgWiIgZmlsbD0iI2ZiZmRmZiIgb3BhY2l0eT0iMC45Ii8+CiAgPHBhdGggZD0iTTc0NSA0MjggTDczNSA0MTggTDc0OCA0NTIgTDc2MCA0NTggWiIgZmlsbD0iI2ZiZmRmZiIgb3BhY2l0eT0iMC45Ii8+CiAgPCEtLSBCYXNlIG1pc3QgLS0+CiAgPGVsbGlwc2UgY3g9IjcyMCIgY3k9IjYyOCIgcng9IjI5MCIgcnk9IjI2IiBmaWxsPSIjZmZmZmZmIiBvcGFjaXR5PSIwLjQ1Ii8+CiAgPCEtLSBGb3JlZ3JvdW5kIGxhbmQgLS0+CiAgPHBhdGggZD0iTTAgNjYwIFEgMzYwIDYzMCA3MjAgNjU1IFQgMTQ0MCA2NjAgTDE0NDAgOTAwIEwwIDkwMCBaIiBmaWxsPSIjZTlkZmU0IiBvcGFjaXR5PSIwLjYiLz4KICA8IS0tIENoZXJyeSBibG9zc29tIGhpbnQgKHN1YnRsZSkgLS0+CiAgPGcgb3BhY2l0eT0iMC41IiBmaWxsPSIjZjJjOWQ4Ij4KICAgIDxjaXJjbGUgY3g9IjE4MCIgY3k9IjcwMCIgcj0iNyIvPjxjaXJjbGUgY3g9IjIwNSIgY3k9IjY5MCIgcj0iNiIvPjxjaXJjbGUgY3g9IjE5NSIgY3k9IjcxMiIgcj0iNiIvPgogICAgPGNpcmNsZSBjeD0iMTI2MCIgY3k9IjY4MCIgcj0iNyIvPjxjaXJjbGUgY3g9IjEyODUiIGN5PSI2OTUiIHI9IjYiLz48Y2lyY2xlIGN4PSIxMjcwIiBjeT0iNjY4IiByPSI1Ii8+CiAgPC9nPgo8L3N2Zz4=") center 35% / cover no-repeat fixed, #eaf4fb;
+        background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNDQwIDkwMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgc2xpY2UiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0ic2t5IiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzlmZDRmNSIvPjxzdG9wIG9mZnNldD0iNTAlIiBzdG9wLWNvbG9yPSIjYzllOGZhIi8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZWFmNmZkIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9Im10biIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM3ZjljYzAiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM1ZjdmYTgiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0ibXRuMiIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNiOGNmZTYiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM5ZmJkZDkiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0id2F0ZXIiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjYmZlMGY1Ii8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjN2ZiNGRkIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjE0NDAiIGhlaWdodD0iOTAwIiBmaWxsPSJ1cmwoI3NreSkiLz48Y2lyY2xlIGN4PSIxMDgwIiBjeT0iMTYwIiByPSIxMjAiIGZpbGw9IiNmZmYzYjAiIG9wYWNpdHk9IjAuMTgiLz48Y2lyY2xlIGN4PSIxMDgwIiBjeT0iMTYwIiByPSI4MCIgZmlsbD0iI2ZmZjNiMCIgb3BhY2l0eT0iMC45Ii8+PHBhdGggZD0iTTAgNTYwIFEgMjQwIDUwMCA0ODAgNTQ1IFQgOTYwIDUzMCBUIDE0NDAgNTU1IEwxNDQwIDkwMCBMMCA5MDAgWiIgZmlsbD0idXJsKCNtdG4yKSIgb3BhY2l0eT0iMC41NSIvPjxwYXRoIGQ9Ik0tNDAgNjMwIEwzMDAgMjUwIEw2NDAgNjMwIFoiIGZpbGw9InVybCgjbXRuKSIvPjxwYXRoIGQ9Ik0yMTYgMzYxIEwzMDAgMjUwIEwzOTEgMzY3IFEgMzUyIDM0NCAzMjYgMzcwIFEgMzAwIDM0NCAyNzQgMzcwIFEgMjQ4IDM0OCAyMTYgMzYxIFoiIGZpbGw9IiNmYmZkZmYiLz48cGF0aCBkPSJNMjYxIDQxOSBMMjgxIDQwNiBMMjcxIDQ1MiBMMjU1IDQ1OCBaIiBmaWxsPSIjZmJmZGZmIiBvcGFjaXR5PSIwLjkiLz48cGF0aCBkPSJNMzMzIDQxNiBMMzIwIDQwMyBMMzM2IDQ0OCBMMzUyIDQ1NSBaIiBmaWxsPSIjZmJmZGZmIiBvcGFjaXR5PSIwLjkiLz48ZWxsaXBzZSBjeD0iMzAwIiBjeT0iNjM4IiByeD0iMzYwIiByeT0iMjYiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuNDUiLz48cGF0aCBkPSJNMCA2NjAgUSAzNjAgNjMwIDcyMCA2NTUgVCAxNDQwIDY2MCBMMTQ0MCA5MDAgTDAgOTAwIFoiIGZpbGw9InVybCgjd2F0ZXIpIi8+PHBhdGggZD0iTTAgNjYwIFEgMzYwIDYzMCA3MjAgNjU1IFQgMTQ0MCA2NjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjM1Ii8+PHBhdGggZD0iTS00MCA2NzIgTDMwMCA4NTIgTDY0MCA2NzIgWiIgZmlsbD0idXJsKCNtdG4pIiBvcGFjaXR5PSIwLjIyIi8+PHBhdGggZD0iTTI0MCA3MjYgTDMwMCA4MDAgTDM2NCA3MzAgUSAzMzYgNzQ1IDMyMiA3MjggUSAzMDAgNzQ2IDI4MiA3MjggUSAyNjIgNzQwIDI0MCA3MjYgWiIgZmlsbD0iI2ZiZmRmZiIgb3BhY2l0eT0iMC4xNCIvPjxlbGxpcHNlIGN4PSIxMDgwIiBjeT0iNzA1IiByeD0iNzIiIHJ5PSIxMyIgZmlsbD0iI2ZmZjNiMCIgb3BhY2l0eT0iMC4zIi8+PGVsbGlwc2UgY3g9IjEwNjgiIGN5PSI3MzUiIHJ4PSI0NiIgcnk9IjgiIGZpbGw9IiNmZmYzYjAiIG9wYWNpdHk9IjAuMTgiLz48ZWxsaXBzZSBjeD0iMTA5MCIgY3k9Ijc2MiIgcng9IjI4IiByeT0iNSIgZmlsbD0iI2ZmZjNiMCIgb3BhY2l0eT0iMC4xIi8+PHBhdGggZD0iTTEyMCA3MzAgcSA0NSAtOCA5MCAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMi41IiBvcGFjaXR5PSIwLjE0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNNTQwIDc4MCBxIDU1IC05IDExMCAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMi41IiBvcGFjaXR5PSIwLjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNODIwIDcyMCBxIDQwIC03IDgwIDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyLjUiIG9wYWNpdHk9IjAuMTQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik0zMDAgODMwIHEgNjAgLTkgMTIwIDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyLjUiIG9wYWNpdHk9IjAuMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTExNTAgODAwIHEgNTAgLTggMTAwIDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyLjUiIG9wYWNpdHk9IjAuMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxnIG9wYWNpdHk9IjAuNSIgZmlsbD0iI2YyYzlkOCI+PGNpcmNsZSBjeD0iMTgwIiBjeT0iNzAwIiByPSI3Ii8+PGNpcmNsZSBjeD0iMjA1IiBjeT0iNjkwIiByPSI2Ii8+PGNpcmNsZSBjeD0iMTk1IiBjeT0iNzEyIiByPSI2Ii8+PGNpcmNsZSBjeD0iMTI2MCIgY3k9IjY4MCIgcj0iNyIvPjxjaXJjbGUgY3g9IjEyODUiIGN5PSI2OTUiIHI9IjYiLz48Y2lyY2xlIGN4PSIxMjcwIiBjeT0iNjY4IiByPSI1Ii8+PC9nPjwvc3ZnPg==") center 35% / cover no-repeat fixed, #eaf4fb;
     }
     /* Khối nội dung: kính mờ (frosted glass) — hơi trong để thấy núi Phú Sĩ, làm mờ nền cho dễ đọc */
     .block-container {
@@ -1051,18 +1051,38 @@ def _fuji_svg(p):
         '<linearGradient id="mtn2" x1="0" y1="0" x2="0" y2="1">'
         f'<stop offset="0%" stop-color="{p["far0"]}"/><stop offset="100%" stop-color="{p["far1"]}"/>'
         '</linearGradient>'
+        '<linearGradient id="water" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0%" stop-color="{p["water0"]}"/><stop offset="100%" stop-color="{p["water1"]}"/>'
+        '</linearGradient>'
         '</defs>'
         '<rect width="1440" height="900" fill="url(#sky)"/>'
         + stars +
         f'<circle cx="{p["orb_x"]}" cy="{p["orb_y"]}" r="{p["orb_r"] + 40}" fill="{p["orb"]}" opacity="0.18"/>'
         f'<circle cx="{p["orb_x"]}" cy="{p["orb_y"]}" r="{p["orb_r"]}" fill="{p["orb"]}" opacity="{p["orb_op"]}"/>'
         '<path d="M0 560 Q 240 500 480 545 T 960 530 T 1440 555 L1440 900 L0 900 Z" fill="url(#mtn2)" opacity="0.55"/>'
-        '<path d="M480 620 L720 300 L960 620 Z" fill="url(#mtn)"/>'
-        f'<path d="M655 385 L720 300 L790 390 Q 760 372 740 392 Q 720 372 700 392 Q 680 375 655 385 Z" fill="{p["snow"]}"/>'
-        f'<path d="M690 430 L705 420 L698 455 L685 460 Z" fill="{p["snow"]}" opacity="0.9"/>'
-        f'<path d="M745 428 L735 418 L748 452 L760 458 Z" fill="{p["snow"]}" opacity="0.9"/>'
-        f'<ellipse cx="720" cy="628" rx="290" ry="26" fill="#ffffff" opacity="{p["mist_op"]}"/>'
-        f'<path d="M0 660 Q 360 630 720 655 T 1440 660 L1440 900 L0 900 Z" fill="{p["land"]}" opacity="0.6"/>'
+        # Núi Phú Sĩ (phóng to, lệch trái)
+        '<path d="M-40 630 L300 250 L640 630 Z" fill="url(#mtn)"/>'
+        f'<path d="M216 361 L300 250 L391 367 Q 352 344 326 370 Q 300 344 274 370 Q 248 348 216 361 Z" fill="{p["snow"]}"/>'
+        f'<path d="M261 419 L281 406 L271 452 L255 458 Z" fill="{p["snow"]}" opacity="0.9"/>'
+        f'<path d="M333 416 L320 403 L336 448 L352 455 Z" fill="{p["snow"]}" opacity="0.9"/>'
+        f'<ellipse cx="300" cy="638" rx="360" ry="26" fill="#ffffff" opacity="{p["mist_op"]}"/>'
+        # Mặt hồ tiền cảnh
+        '<path d="M0 660 Q 360 630 720 655 T 1440 660 L1440 900 L0 900 Z" fill="url(#water)"/>'
+        '<path d="M0 660 Q 360 630 720 655 T 1440 660" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.35"/>'
+        # Bóng núi phản chiếu (lộn ngược, nén dọc, mờ)
+        '<path d="M-40 672 L300 852 L640 672 Z" fill="url(#mtn)" opacity="0.22"/>'
+        f'<path d="M240 726 L300 800 L364 730 Q 336 745 322 728 Q 300 746 282 728 Q 262 740 240 726 Z" fill="{p["snow"]}" opacity="0.14"/>'
+        # Bóng trăng/mặt trời lung linh trên nước
+        f'<ellipse cx="{p["orb_x"]}" cy="705" rx="72" ry="13" fill="{p["orb"]}" opacity="0.3"/>'
+        f'<ellipse cx="{p["orb_x"] - 12}" cy="735" rx="46" ry="8" fill="{p["orb"]}" opacity="0.18"/>'
+        f'<ellipse cx="{p["orb_x"] + 10}" cy="762" rx="28" ry="5" fill="{p["orb"]}" opacity="0.1"/>'
+        # Gợn sóng nhẹ
+        '<path d="M120 730 q 45 -8 90 0" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.14" stroke-linecap="round"/>'
+        '<path d="M540 780 q 55 -9 110 0" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.12" stroke-linecap="round"/>'
+        '<path d="M820 720 q 40 -7 80 0" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.14" stroke-linecap="round"/>'
+        '<path d="M300 830 q 60 -9 120 0" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.1" stroke-linecap="round"/>'
+        '<path d="M1150 800 q 50 -8 100 0" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.12" stroke-linecap="round"/>'
+        # Cánh hoa trôi trên mặt nước
         f'<g opacity="{p["blossom_op"]}" fill="{p["blossom"]}">'
         '<circle cx="180" cy="700" r="7"/><circle cx="205" cy="690" r="6"/><circle cx="195" cy="712" r="6"/>'
         '<circle cx="1260" cy="680" r="7"/><circle cx="1285" cy="695" r="6"/><circle cx="1270" cy="668" r="5"/>'
@@ -1070,23 +1090,26 @@ def _fuji_svg(p):
     )
 
 _BG_PALETTES = {
-    # Sáng (5h–11h): bình minh hồng cam, mặt trời thấp ấm áp
+    # Sáng (5h–11h): bình minh hồng cam, mặt trời thấp ấm áp, hồ ánh cam-xanh
     "morning": dict(sky0="#bfe3f5", sky1="#ffd9c2", sky2="#ffc9a3",
                     orb="#ffb56b", orb_x=1080, orb_y=380, orb_r=90, orb_op="0.85",
                     mtn0="#8fa8c8", mtn1="#7089ad", far0="#e0c4d0", far1="#c9aec2",
-                    snow="#fff6ee", mist_op="0.45", land="#f2ddc9",
+                    snow="#fff6ee", mist_op="0.45",
+                    water0="#ffd0a8", water1="#8fb0d0",
                     blossom="#f2a9c4", blossom_op="0.55"),
-    # Trưa/chiều (11h–17h): trời xanh trong, nắng cao rực rỡ
+    # Trưa/chiều (11h–17h): trời xanh trong, nắng cao rực rỡ, hồ xanh biếc
     "noon": dict(sky0="#9fd4f5", sky1="#c9e8fa", sky2="#eaf6fd",
                  orb="#fff3b0", orb_x=1080, orb_y=160, orb_r=80, orb_op="0.9",
                  mtn0="#7f9cc0", mtn1="#5f7fa8", far0="#b8cfe6", far1="#9fbdd9",
-                 snow="#fbfdff", mist_op="0.45", land="#dce9dd",
+                 snow="#fbfdff", mist_op="0.45",
+                 water0="#bfe0f5", water1="#7fb4dd",
                  blossom="#f2c9d8", blossom_op="0.5"),
-    # Tối (17h–5h): trời tím đậm, trăng vàng và sao — đồng bộ với splash đêm
+    # Tối (17h–5h): trời tím đậm, trăng vàng và sao, hồ đêm thẫm — đồng bộ với splash đêm
     "night": dict(sky0="#16213e", sky1="#3a3f66", sky2="#6b5b8a",
                   orb="#ffe9a8", orb_x=1080, orb_y=200, orb_r=70, orb_op="0.9",
                   mtn0="#3d4a6b", mtn1="#2c3854", far0="#4a5680", far1="#3d4a6b",
-                  snow="#dfe6f5", mist_op="0.16", land="#3c3a55",
+                  snow="#dfe6f5", mist_op="0.16",
+                  water0="#3b3f66", water1="#1d2440",
                   blossom="#a86f8a", blossom_op="0.35", stars=True),
 }
 
