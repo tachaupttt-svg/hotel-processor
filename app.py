@@ -459,18 +459,62 @@ def wb_to_bytes(wb):
     buf = io.BytesIO(); wb.save(buf); return buf.getvalue()
 
 # ── Processing ────────────────────────────────────────────────────────────
+# 29 cột theo file mẫu customer.xls (mẫu xuất file converted)
+CONVERTED_HEADERS = [
+    'STT', 'HỌ TÊN', 'NGÀY SINH', 'GIỚI TÍNH', 'LOẠI KHÁCH', 'SỐ GIẤY TỜ',
+    'LOẠI GIẤY TỜ', 'QUỐC TỊCH', 'ĐỊA CHỈ', 'PHƯỜNG/XÃ', 'QUẬN/HUYỆN', 'TP/TỈNH',
+    'KHÁCH SẠN', 'MÃ CHECKIN', 'SỐ PHÒNG', 'ĐƠN GIÁ', 'NGÀY ĐẾN', 'NGÀY ĐI',
+    'NGÀY NHẬP CẢNH', 'MỤC ĐÍCH NHẬP CẢNH', 'CỬA KHẨU NHẬP CẢNH', 'TẠM TRÚ ĐẾN NGÀY',
+    'NGHỀ NGHIỆP', 'GHI CHÚ', 'SỐ ĐIỆN THOẠI', 'NƠI LÀM VIỆC', 'LÝ DO LƯU TRÚ',
+    'THƯỜNG TRÚ / TẠM TRÚ', 'DÂN TỘC',
+]
+
 def process_xlsx(xlsx_bytes, rate):
-    wb = load_workbook(io.BytesIO(xlsx_bytes))
-    ws = wb.active
-    don_gia_col = next((c.column for c in ws[1] if c.value=='ĐƠN GIÁ'), None)
+    """Đổ dữ liệu file đầu vào lên khung 29 cột theo mẫu customer.xls,
+    quy đổi ĐƠN GIÁ (USD → VND, tô vàng ô đã đổi). Map cột theo tên
+    (không phân biệt hoa thường / dấu / khoảng trắng / ký tự đặc biệt)."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font
+
+    src_wb = load_workbook(io.BytesIO(xlsx_bytes))
+    src_ws = src_wb.active
+
+    # Map header nguồn (chuẩn hóa) → chỉ số cột nguồn
+    src_map = {}
+    for c in src_ws[1]:
+        if c.value is not None and str(c.value).strip():
+            src_map.setdefault(_norm_nat(c.value), c.column)
+
+    # Với mỗi cột mẫu, tìm cột nguồn tương ứng
+    col_src = [src_map.get(_norm_nat(h)) for h in CONVERTED_HEADERS]
+
+    wb = Workbook(); ws = wb.active; ws.title = src_ws.title
+    for ci, h in enumerate(CONVERTED_HEADERS, 1):
+        cell = ws.cell(1, ci, h); cell.font = Font(bold=True)
+
+    don_gia_idx = CONVERTED_HEADERS.index('ĐƠN GIÁ') + 1
     conv = 0
-    if don_gia_col:
-        for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
-            cell = row[don_gia_col-1]
-            if cell.value and isinstance(cell.value,(int,float)) and 0 < cell.value < 1000:
-                cell.value = round(cell.value * rate)
-                cell.fill = PatternFill("solid", start_color="FFFF00")
-                conv += 1
+    er = 1
+    for row in src_ws.iter_rows(min_row=2, max_row=src_ws.max_row):
+        # bỏ dòng trống hoàn toàn
+        if all(c.value is None or str(c.value).strip() == '' for c in row):
+            continue
+        er += 1
+        for ci, sc in enumerate(col_src, 1):
+            if sc is None: continue
+            v = row[sc - 1].value
+            if v is None: continue
+            cell = ws.cell(er, ci, v)
+            if row[sc - 1].number_format not in ('General', None):
+                cell.number_format = row[sc - 1].number_format
+        # STT đánh lại + quy đổi tỷ giá
+        ws.cell(er, 1).value = er - 1
+        dg = ws.cell(er, don_gia_idx)
+        if dg.value and isinstance(dg.value, (int, float)) and 0 < dg.value < 1000:
+            dg.value = round(dg.value * rate)
+            dg.fill = PatternFill("solid", start_color="FFFF00")
+            dg.number_format = 'General'
+            conv += 1
     return wb, conv
 
 def split_wb(wb, loai):
