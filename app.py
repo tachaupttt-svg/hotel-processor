@@ -1298,6 +1298,89 @@ def go_menu(name):
     st.session_state.menu = name
 
 # ── Menu landing screen ───────────────────────────────────────────────────
+
+# ── Tạo file ARR từ file Arrival (Book) Smile ──────────────────────────────
+def build_arr(book_bytes):
+    """Tạo file ARR: nhóm theo Conf#, mỗi booking 1 dòng + dòng phụ Cà Thẻ / Thu Tiền / LUNCH IN.
+
+    Quy tắc:
+    - Conf# trùng nhau (nhiều dòng khách/phòng) = 1 booking; cột J = số phòng UNIQUE
+      trong nhóm, loại phòng ảo 9000-9999 (posting master).
+    - Cột: A=số nội bộ (dòng đầu nhóm), C=Conf#, D=Arrival, E=Departure, F=Company,
+      G=deposit (cột 20 nếu có), I=Notice nguyên văn, J=số phòng.
+    - Dòng phụ (cột A lấy từ dòng THỨ HAI của nhóm nếu có):
+        · Company AGODA / EXPEDIA / CTRIP        → "CÀ THẺ"
+        · Company BOOKING.COM                    → "THU TIỀN"
+        · Notice chứa "RC PAY BF C/I"            → "THU TIỀN"
+          (lưu ý: "RC TA PAY BF C/I" KHÔNG tính — có chữ TA là đại lý trả)
+        · Notice chứa "LUNCH"                    → "LUNCH IN"
+    """
+    import re as _re2
+    import numpy as _np
+
+    df = pd.read_excel(io.BytesIO(book_bytes), header=None)
+    # Bỏ dòng tiêu đề (dòng chứa ô 'Conf#') nếu có
+    hdr = None
+    for i in range(min(5, len(df))):
+        if any(str(v).strip() == 'Conf#' for v in df.iloc[i] if pd.notna(v)):
+            hdr = i; break
+    data = df.iloc[(hdr + 1 if hdr is not None else 0):].copy()
+    if data.shape[1] < 47:
+        raise ValueError("File không đúng cấu trúc Arrival Smile (thiếu cột). Vui lòng kiểm tra lại file.")
+    data['conf'] = data[5].ffill()
+    data = data[data['conf'].notna()]
+    if len(data) == 0:
+        raise ValueError("File không có dữ liệu booking nào.")
+
+    CA_THE = ('agoda', 'expedia', 'ctrip')
+
+    def _clean(v):
+        """Chuyển giá trị pandas/numpy về kiểu ghi được vào Excel."""
+        if v is None or (not isinstance(v, str) and pd.isna(v)): return None
+        if isinstance(v, _np.floating): return float(v)
+        if isinstance(v, _np.integer): return int(v)
+        if isinstance(v, pd.Timestamp): return v.to_pydatetime()
+        return v
+
+    rows = []
+    stats = {'bookings': 0, 'ca_the': 0, 'thu_tien': 0, 'lunch': 0}
+    for _conf, grp in data.groupby('conf', sort=False):
+        first = grp.iloc[0]
+        # Số phòng unique, loại phòng ảo 9xxx
+        rooms = grp[10].dropna().astype(str).str.strip()
+        rooms = [r for r in rooms.unique() if r and not _re2.fullmatch(r'9\d{3}', r)]
+        notice = str(first[46]).strip() if pd.notna(first[46]) else ''
+        company = str(first[19]).strip() if pd.notna(first[19]) else ''
+        rows.append([_clean(first[0]), None, _clean(first[5]), _clean(first[13]),
+                     _clean(first[14]), company or None, _clean(first[20]), None,
+                     notice or None, float(len(rooms))])
+        stats['bookings'] += 1
+
+        # Dòng phụ
+        extra_c0 = _clean(grp.iloc[1][0]) if len(grp) > 1 else None
+        comp_key = _norm_nat(company)
+        labels = []
+        if any(comp_key.startswith(x) for x in CA_THE):
+            labels.append('CÀ THẺ'); stats['ca_the'] += 1
+        elif comp_key.startswith('booking'):
+            labels.append('THU TIỀN'); stats['thu_tien'] += 1
+        if 'RC PAY BF C/I' in notice.upper() and 'THU TIỀN' not in labels:
+            labels.append('THU TIỀN'); stats['thu_tien'] += 1
+        if 'LUNCH' in notice.upper():
+            labels.append('LUNCH IN'); stats['lunch'] += 1
+        for lb in labels:
+            rows.append([extra_c0, None, lb, None, None, None, None, None, None, None])
+
+    from openpyxl import Workbook
+    wb = Workbook(); ws = wb.active; ws.title = 'Sheet1'
+    for r in rows:
+        ws.append(r)
+    # Độ rộng cột dễ đọc
+    for col, w in zip('ABCDEFGHIJ', [10, 4, 12, 20, 20, 24, 8, 4, 55, 6]):
+        ws.column_dimensions[col].width = w
+    return wb, stats
+
+
 if st.session_state.menu is None:
     st.markdown('<div class="section-label">✨ Chọn chức năng</div>', unsafe_allow_html=True)
     st.write("")
@@ -1317,7 +1400,7 @@ if st.session_state.menu is None:
         <div class="menu-card menu-green">
             <div class="menu-icon">🖨️</div>
             <div class="menu-title">Tạo Regcard PDF</div>
-            <div class="menu-desc">Điền dữ liệu booking lên mẫu Registration Card · Xuất PDF hàng loạt</div>
+            <div class="menu-desc">Điền dữ liệu booking lên mẫu Registration Card · Xuất PDF hàng loạt + file ARR</div>
         </div>
         """, unsafe_allow_html=True)
         st.button("Mở  →", key="btn_regcard", use_container_width=True,
@@ -1445,8 +1528,9 @@ if st.session_state.menu == "daily":
 if st.session_state.menu == "regcard":
     st.button("←  Quay lại menu", key="back_regcard", on_click=go_menu, args=(None,))
     st.write("")
-    st.markdown('<div class="section-label">🖨️ Tạo Registration Card hàng loạt</div>', unsafe_allow_html=True)
-    st.caption("Điền dữ liệu từ file Excel (Booking list) lên mẫu Regcard PDF gốc — giữ nguyên 100% form.")
+    st.markdown('<div class="section-label">🖨️ Tạo Registration Card + file ARR</div>', unsafe_allow_html=True)
+    st.caption("Điền dữ liệu từ file Arrival Smile lên mẫu Regcard PDF gốc, đồng thời tạo file ARR "
+               "(nhóm Conf# · đếm phòng · Cà Thẻ / Thu Tiền / Lunch In) — ra cùng lúc 2 file.")
 
     rc_file = st.file_uploader("File Excel dữ liệu booking (.xlsx)", type=['xlsx'], key="rc_xlsx")
 
@@ -1455,28 +1539,66 @@ if st.session_state.menu == "regcard":
 
     st.write("")
 
-    if st.button("🖨️ Tạo Regcard PDF", type="primary", disabled=rc_file is None, use_container_width=True):
-        with st.spinner("Đang tạo PDF..."):
+    if st.button("🖨️ Tạo Regcard PDF + file ARR", type="primary", disabled=rc_file is None, use_container_width=True):
+        with st.spinner("Đang tạo Regcard PDF và file ARR..."):
             try:
                 rc_bytes = rc_file.read()
                 pdf_data, count = build_regcards(rc_bytes, only_main=only_main)
 
-                if count == 0:
-                    st.warning("⚠️ Không tìm thấy khách nào để tạo regcard. Kiểm tra lại file.")
-                else:
-                    st.success(f"✅ Đã tạo {count} regcard!")
-                    st.metric("Số regcard", count)
-                    st.download_button(
-                        label=f"⬇️ Tải về {count} Regcard (PDF)",
-                        data=pdf_data,
-                        file_name=f"regcards_{datetime.date.today().strftime('%d_%m')}.pdf",
-                        mime="application/pdf",
-                        use_container_width=True,
-                        type="primary"
-                    )
+                # Tạo file ARR từ cùng file đầu vào (lỗi ARR không làm hỏng PDF)
+                arr_bytes, arr_stats, arr_err = None, None, None
+                try:
+                    wb_arr, arr_stats = build_arr(rc_bytes)
+                    arr_bytes = wb_to_bytes(wb_arr)
+                except Exception as _e:
+                    arr_err = str(_e)
+
+                st.session_state['rc_results'] = {
+                    'pdf': pdf_data, 'count': count,
+                    'arr': arr_bytes, 'arr_stats': arr_stats, 'arr_err': arr_err,
+                    'date': datetime.date.today().strftime('%d_%m'),
+                }
             except Exception as e:
+                st.session_state.pop('rc_results', None)
                 st.error(f"❌ Lỗi: {e}")
                 st.exception(e)
+
+    # Kết quả lưu trong session — 2 nút tải không biến mất sau khi bấm 1 nút
+    _res = st.session_state.get('rc_results')
+    if _res:
+        if _res['count'] == 0:
+            st.warning("⚠️ Không tìm thấy khách nào để tạo regcard. Kiểm tra lại file.")
+        else:
+            st.success(f"✅ Đã tạo {_res['count']} regcard"
+                       + (" + file ARR!" if _res['arr'] else "!"))
+            if _res['arr_stats']:
+                a1, a2, a3, a4, a5 = st.columns(5)
+                a1.metric("🖨️ Regcard", _res['count'])
+                a2.metric("📦 Booking", _res['arr_stats']['bookings'])
+                a3.metric("💳 Cà Thẻ", _res['arr_stats']['ca_the'])
+                a4.metric("💵 Thu Tiền", _res['arr_stats']['thu_tien'])
+                a5.metric("🍽️ Lunch In", _res['arr_stats']['lunch'])
+            else:
+                st.metric("Số regcard", _res['count'])
+
+            d1, d2 = st.columns(2)
+            with d1:
+                st.download_button(
+                    label=f"⬇️ Tải {_res['count']} Regcard (PDF)",
+                    data=_res['pdf'],
+                    file_name=f"regcards_{_res['date']}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True, type="primary", key="dl_rc_pdf")
+            with d2:
+                if _res['arr']:
+                    st.download_button(
+                        label="⬇️ Tải file ARR (Excel)",
+                        data=_res['arr'],
+                        file_name=f"arr_{_res['date']}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True, type="primary", key="dl_rc_arr")
+            if _res['arr_err']:
+                st.warning(f"⚠️ Không tạo được file ARR: {_res['arr_err']}")
 
 
 # ── Đối chiếu: sub-menu 2 lựa chọn (có cổng mật khẩu riêng) ────────────────
@@ -1741,3 +1863,4 @@ if st.session_state.menu == "recon_room":
             except Exception as e:
                 st.error(f"❌ Lỗi: {e}")
                 st.exception(e)
+
