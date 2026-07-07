@@ -459,23 +459,11 @@ def wb_to_bytes(wb):
     buf = io.BytesIO(); wb.save(buf); return buf.getvalue()
 
 # ── Processing ────────────────────────────────────────────────────────────
-# 29 cột theo file mẫu customer.xls (mẫu xuất file converted)
-CONVERTED_HEADERS = [
-    'STT', 'HỌ TÊN', 'NGÀY SINH', 'GIỚI TÍNH', 'LOẠI KHÁCH', 'SỐ GIẤY TỜ',
-    'LOẠI GIẤY TỜ', 'QUỐC TỊCH', 'ĐỊA CHỈ', 'PHƯỜNG/XÃ', 'QUẬN/HUYỆN', 'TP/TỈNH',
-    'KHÁCH SẠN', 'MÃ CHECKIN', 'SỐ PHÒNG', 'ĐƠN GIÁ', 'NGÀY ĐẾN', 'NGÀY ĐI',
-    'NGÀY NHẬP CẢNH', 'MỤC ĐÍCH NHẬP CẢNH', 'CỬA KHẨU NHẬP CẢNH', 'TẠM TRÚ ĐẾN NGÀY',
-    'NGHỀ NGHIỆP', 'GHI CHÚ', 'SỐ ĐIỆN THOẠI', 'NƠI LÀM VIỆC', 'LÝ DO LƯU TRÚ',
-    'THƯỜNG TRÚ / TẠM TRÚ', 'DÂN TỘC',
-]
-
 def process_xlsx(xlsx_bytes, rate):
-    """Đổ dữ liệu file đầu vào lên khung 29 cột theo mẫu customer.xls,
-    quy đổi ĐƠN GIÁ (USD → VND, tô vàng ô đã đổi). Map cột theo tên
-    (không phân biệt hoa thường / dấu / khoảng trắng / ký tự đặc biệt)."""
-    from openpyxl import Workbook
-    from openpyxl.styles import Font
-
+    """Điền dữ liệu file đầu vào lên FILE MẪU customer (QLLT) — giữ nguyên 100%
+    template: sheet 'customer' + sheet 'Danh-muc', định dạng header, style ô dữ liệu.
+    Map cột theo tên (không phân biệt hoa thường / dấu / khoảng trắng), quy đổi
+    ĐƠN GIÁ (USD → VND, tô vàng ô đã đổi), đánh lại STT."""
     src_wb = load_workbook(io.BytesIO(xlsx_bytes))
     src_ws = src_wb.active
 
@@ -485,36 +473,41 @@ def process_xlsx(xlsx_bytes, rate):
         if c.value is not None and str(c.value).strip():
             src_map.setdefault(_norm_nat(c.value), c.column)
 
-    # Với mỗi cột mẫu, tìm cột nguồn tương ứng
-    col_src = [src_map.get(_norm_nat(h)) for h in CONVERTED_HEADERS]
+    # Nạp template QLLT (customer + Danh-muc), dòng 2 là mẫu định dạng ô dữ liệu
+    wb = load_workbook(io.BytesIO(load_template('customer')))
+    ws = wb['customer']
+    n_cols = ws.max_column
+    ref = [ws.cell(2, ci) for ci in range(1, n_cols + 1)]
+    ref_styles = [(copy(c.font), copy(c.fill), copy(c.border), copy(c.alignment), c.number_format) for c in ref]
 
-    wb = Workbook(); ws = wb.active; ws.title = src_ws.title
-    for ci, h in enumerate(CONVERTED_HEADERS, 1):
-        cell = ws.cell(1, ci, h); cell.font = Font(bold=True)
+    # Với mỗi cột template, tìm cột nguồn tương ứng theo tên
+    headers = [ws.cell(1, ci).value for ci in range(1, n_cols + 1)]
+    col_src = [src_map.get(_norm_nat(h)) if h else None for h in headers]
+    don_gia_idx = next((i + 1 for i, h in enumerate(headers) if h and _norm_nat(h) == _norm_nat('ĐƠN GIÁ')), None)
 
-    don_gia_idx = CONVERTED_HEADERS.index('ĐƠN GIÁ') + 1
+    ws.delete_rows(2)  # bỏ dòng mẫu
+
     conv = 0
     er = 1
     for row in src_ws.iter_rows(min_row=2, max_row=src_ws.max_row):
-        # bỏ dòng trống hoàn toàn
         if all(c.value is None or str(c.value).strip() == '' for c in row):
             continue
         er += 1
-        for ci, sc in enumerate(col_src, 1):
-            if sc is None: continue
-            v = row[sc - 1].value
-            if v is None: continue
-            cell = ws.cell(er, ci, v)
-            if row[sc - 1].number_format not in ('General', None):
-                cell.number_format = row[sc - 1].number_format
-        # STT đánh lại + quy đổi tỷ giá
-        ws.cell(er, 1).value = er - 1
-        dg = ws.cell(er, don_gia_idx)
-        if dg.value and isinstance(dg.value, (int, float)) and 0 < dg.value < 1000:
-            dg.value = round(dg.value * rate)
-            dg.fill = PatternFill("solid", start_color="FFFF00")
-            dg.number_format = 'General'
-            conv += 1
+        for ci in range(1, n_cols + 1):
+            cell = ws.cell(er, ci)
+            f, fl, b, a, nf = ref_styles[ci - 1]
+            cell.font = copy(f); cell.fill = copy(fl); cell.border = copy(b)
+            cell.alignment = copy(a); cell.number_format = nf
+            sc = col_src[ci - 1]
+            if sc is not None and row[sc - 1].value is not None:
+                cell.value = row[sc - 1].value
+        ws.cell(er, 1).value = er - 1  # STT đánh lại
+        if don_gia_idx:
+            dg = ws.cell(er, don_gia_idx)
+            if dg.value and isinstance(dg.value, (int, float)) and 0 < dg.value < 1000:
+                dg.value = round(dg.value * rate)
+                dg.fill = PatternFill("solid", start_color="FFFF00")
+                conv += 1
     return wb, conv
 
 def split_wb(wb, loai):
