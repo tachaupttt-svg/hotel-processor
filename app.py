@@ -1135,7 +1135,7 @@ components.html("""
     <div style="font-size:1.5rem; font-weight:650; color:#1a1a1a; letter-spacing:-0.02em;">
         <span id="greet-emoji" style="margin-right:6px;"></span><span id="greet-text"></span>, Ta Chau
     </div>
-    <div style="font-size:0.85rem; color:#9b9b9b; font-weight:500; font-variant-numeric:tabular-nums;">
+    <div id="date-wrap" style="font-size:0.85rem; color:#9b9b9b; font-weight:500; font-variant-numeric:tabular-nums;">
         <span id="date-text"></span> · <span id="live-clock" style="color:#6b6b6b; font-weight:600;"></span>
     </div>
 </div>
@@ -1158,6 +1158,20 @@ components.html("""
         if (gt) gt.textContent = greet;
         if (dt) dt.textContent = WD[d.getDay()] + ", " + pad(d.getDate()) + "/" + pad(d.getMonth()+1) + "/" + d.getFullYear();
         if (lc) lc.textContent = pad(h) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+        // Đổi màu ngày/giờ theo nền: tối (17h-5h) chữ sáng, ban ngày chữ đậm
+        var wrap = document.getElementById('date-wrap');
+        var night = (h >= 17 || h < 5);
+        if (wrap && lc) {
+            if (night) {
+                wrap.style.color = '#e6e3f4';
+                wrap.style.textShadow = '0 1px 6px rgba(0,0,0,.35)';
+                lc.style.color = '#ffffff';
+            } else {
+                wrap.style.color = '#5a5a6e';
+                wrap.style.textShadow = '0 1px 4px rgba(255,255,255,.6)';
+                lc.style.color = '#33334a';
+            }
+        }
     }
     setInterval(update, 1000);
     update();
