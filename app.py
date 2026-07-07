@@ -844,7 +844,7 @@ st.markdown("""
     /* Khối nội dung: kính mờ (frosted glass) — đủ đục để chữ luôn dễ đọc trên MỌI nền
        (sáng/trưa/tối), cảnh Phú Sĩ + trăng nằm hai bên ngoài khung nên vẫn thấy trọn */
     .block-container {
-        background: rgba(255,255,255,0.82);
+        background: rgba(255,255,255,0.55);
         backdrop-filter: blur(14px) saturate(1.05);
         -webkit-backdrop-filter: blur(14px) saturate(1.05);
         border: 1px solid rgba(255,255,255,0.65);
