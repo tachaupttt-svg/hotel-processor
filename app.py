@@ -521,6 +521,9 @@ def build_vnm(df_vn):
             sg=make_code('GKS',ns); lg='5 - Giấy khai sinh'; gks_cnt+=1
         elif is_gbl:
             sg=make_code('GBL',ns); lg='9 - Giấy tờ khác'; ten_giay='Giấy bảo lãnh'; gbl_cnt+=1
+        elif sg_raw and sg_raw[0].isalpha():
+            # Số giấy tờ bắt đầu bằng chữ cái (vd: P02628567) → là hộ chiếu
+            sg=sg_raw; lg='4 - Hộ chiếu'
         else:
             sg=sg_raw; lg=LOAI_GIAY.get(lg_raw,lg_raw)
         tinh=TINH.get(str(row.get('TP/TỈNH','')).strip().upper(),'')
@@ -984,8 +987,12 @@ components.html("""
       @keyframes sp-sway{0%,100%{transform:rotate(-3deg);}50%{transform:rotate(3deg);}}
       .sp-umbrella{position:absolute;bottom:114px;right:6%;font-size:7rem;animation:sp-pop .7s cubic-bezier(.34,1.56,.64,1) 1s both;
         filter:drop-shadow(0 6px 10px rgba(0,0,0,.18));}
-      .sp-bird{position:absolute;top:14%;left:-110px;font-size:2.8rem;opacity:0;animation:sp-fly 5s linear .6s forwards;}
-      .sp-bird.b2{top:22%;font-size:2rem;animation-delay:1.4s;animation-duration:6s;}
+      .sp-bird{position:absolute;top:14%;left:-130px;opacity:0;animation:sp-fly 5s linear .6s forwards;}
+      .sp-bird.b2{top:22%;animation-delay:1.4s;animation-duration:6s;}
+      .sp-bird svg{overflow:visible;display:block;}
+      .sp-bird .bwing{transform-box:fill-box;transform-origin:88% 92%;animation:sp-flap .42s ease-in-out infinite alternate;}
+      .sp-bird .bwing.back{animation-delay:.21s;}
+      @keyframes sp-flap{from{transform:rotate(-38deg);}to{transform:rotate(26deg);}}
       @keyframes sp-fly{0%{transform:translateX(0) translateY(0);opacity:0;}8%{opacity:.85;}
         50%{transform:translateX(55vw) translateY(-26px);opacity:.85;}100%{transform:translateX(112vw) translateY(6px);opacity:.85;}}
 
@@ -1003,13 +1010,25 @@ components.html("""
         }
     }
 
+    function spBird(w){
+        return '<svg viewBox="0 0 64 44" width="' + w + '" xmlns="http://www.w3.org/2000/svg">' +
+            '<path class="bwing back" d="M30 23 Q 40 4 54 8 Q 42 16 31 27 Z" fill="#e8b3c0"/>' +
+            '<path d="M10 24 L23 20 L23 28 Z" fill="#c76f88"/>' +
+            '<ellipse cx="33" cy="24" rx="12" ry="8.5" fill="#d98a9e"/>' +
+            '<circle cx="46" cy="17" r="6.5" fill="#d98a9e"/>' +
+            '<path d="M52 15 L59 17.5 L52 20 Z" fill="#f0a25f"/>' +
+            '<circle cx="48" cy="16" r="1.4" fill="#4a2f38"/>' +
+            '<path class="bwing" d="M33 22 Q 22 2 8 6 Q 20 15 34 26 Z" fill="#c76f88"/>' +
+            '</svg>';
+    }
+
     var s = doc.createElement('div');
     s.id = 'splash-overlay';
     s.className = isNight ? 'sp-night' : 'sp-day';
     s.innerHTML =
         stars +
         (isNight ? '<div class="sp-moon"></div>' : '<div class="sp-sun"></div>') +
-        '<div class="sp-bird">🕊️</div><div class="sp-bird b2">🕊️</div>' +
+        '<div class="sp-bird">' + spBird(66) + '</div><div class="sp-bird b2">' + spBird(46) + '</div>' +
         '<div class="sp-palm">🌴</div><div class="sp-umbrella">⛱️</div>' +
         '<div class="sp-wave">' + waveSvg + waveSvg.replace('<svg', '<svg class="w2"') + '</div>';
     doc.body.appendChild(s);
@@ -1221,10 +1240,29 @@ components.html("""
       @keyframes drift{from{transform:translateX(-140px);}to{transform:translateX(112vw);}}
       #deco-layer-outer .petal{position:fixed;top:-40px;font-size:1.1rem;animation:fall linear infinite;}
       @keyframes fall{0%{transform:translateY(-40px) translateX(0) rotate(0);opacity:0;}12%{opacity:.85;}100%{transform:translateY(106vh) translateX(50px) rotate(360deg);opacity:.65;}}
-      #deco-layer-outer .bird{position:fixed;font-size:1.3rem;opacity:.45;animation:flyby linear infinite;}
+      #deco-layer-outer .bird{position:fixed;opacity:.6;animation:flyby linear infinite;}
       @keyframes flyby{from{transform:translateX(-90px) translateY(0);}50%{transform:translateX(50vw) translateY(-22px);}to{transform:translateX(112vw) translateY(8px);}}
+      #deco-layer-outer .bird svg{overflow:visible;display:block;animation:bob 1.1s ease-in-out infinite alternate;}
+      @keyframes bob{from{transform:translateY(-3px);}to{transform:translateY(3px);}}
+      #deco-layer-outer .bwing{transform-box:fill-box;transform-origin:88% 92%;
+        animation:flap .42s ease-in-out infinite alternate;}
+      #deco-layer-outer .bwing.back{animation-delay:.21s;}
+      @keyframes flap{from{transform:rotate(-38deg);}to{transform:rotate(26deg);}}
     `;
     doc.head.appendChild(css);
+
+    // Chim SVG vỗ cánh (thân + đầu + mỏ + 2 cánh lệch pha)
+    function birdSvg(w){
+        return '<svg viewBox="0 0 64 44" width="' + w + '" xmlns="http://www.w3.org/2000/svg">' +
+            '<path class="bwing back" d="M30 23 Q 40 4 54 8 Q 42 16 31 27 Z" fill="#e8b3c0"/>' +
+            '<path d="M10 24 L23 20 L23 28 Z" fill="#c76f88"/>' +
+            '<ellipse cx="33" cy="24" rx="12" ry="8.5" fill="#d98a9e"/>' +
+            '<circle cx="46" cy="17" r="6.5" fill="#d98a9e"/>' +
+            '<path d="M52 15 L59 17.5 L52 20 Z" fill="#f0a25f"/>' +
+            '<circle cx="48" cy="16" r="1.4" fill="#4a2f38"/>' +
+            '<path class="bwing" d="M33 22 Q 22 2 8 6 Q 20 15 34 26 Z" fill="#c76f88"/>' +
+            '</svg>';
+    }
 
     // Lớp trang trí
     var d = doc.createElement('div');
@@ -1233,8 +1271,9 @@ components.html("""
       <div class="cloud" style="top:7%; left:0; animation-duration:52s;">☁️</div>
       <div class="cloud" style="top:15%; left:0; animation-duration:70s; animation-delay:9s; font-size:2rem;">☁️</div>
       <div class="cloud" style="top:4%; left:0; animation-duration:84s; animation-delay:22s; font-size:2.3rem; opacity:.4;">☁️</div>
-      <div class="bird" style="top:21%; animation-duration:38s; animation-delay:6s;">🐦</div>
-      <div class="bird" style="top:25%; animation-duration:46s; animation-delay:20s; font-size:1rem;">🐦</div>
+      <div class="bird" style="top:21%; animation-duration:38s; animation-delay:6s;">` + birdSvg(44) + `</div>
+      <div class="bird" style="top:25%; animation-duration:46s; animation-delay:20s; opacity:.45;">` + birdSvg(30) + `</div>
+      <div class="bird" style="top:12%; animation-duration:42s; animation-delay:33s; opacity:.5;">` + birdSvg(36) + `</div>
       <div class="petal" style="left:3%; animation-duration:12s; animation-delay:0s;">🌸</div>
       <div class="petal" style="left:8%; animation-duration:15s; animation-delay:3s;">🌸</div>
       <div class="petal" style="left:13%; animation-duration:10s; animation-delay:6s; font-size:.9rem;">🌸</div>
