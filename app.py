@@ -1526,10 +1526,10 @@ if st.session_state.menu == "recon":
         <div class="menu-card menu-gray">
             <div class="menu-icon">🚪</div>
             <div class="menu-title">Kiểm tra hệ thống quản lý lưu trú phòng</div>
-            <div class="menu-desc">Đối chiếu số phòng inhouse với hệ thống quản lý lưu trú phòng <br><em>(đang phát triển)</em></div>
+            <div class="menu-desc">So khớp số phòng inhouse trên Smile với hệ thống quản lý lưu trú phòng · Tìm phòng chưa đăng ký / thừa / trùng</div>
         </div>
         """, unsafe_allow_html=True)
-        st.button("Sắp có", key="btn_recon_room", use_container_width=True,
+        st.button("Mở  →", key="btn_recon_room", use_container_width=True,
                   on_click=go_menu, args=("recon_room",))
 
 # ── Kiểm tra lưu trú người nước ngoài ─────────────────────────────────────
@@ -1599,11 +1599,145 @@ if st.session_state.menu == "recon_person":
                 st.error(f"❌ Lỗi: {e}")
                 st.exception(e)
 
-# ── Kiểm tra hệ thống quản lý lưu trú phòng (đang phát triển) ──────────────
+# ── Kiểm tra hệ thống quản lý lưu trú phòng ────────────────────────────────
+def reconcile_rooms(smile_bytes, room_bytes, today):
+    """Đối chiếu phòng inhouse từ file khách lưu trú Smile (trừ khách Arrival hôm nay)
+    với file Excel chỉ chứa danh sách số phòng."""
+    from collections import Counter
+
+    # ── Đọc file khách lưu trú Smile ──
+    df1 = pd.read_excel(io.BytesIO(smile_bytes), header=0)
+    if 'Rm#' not in df1.columns:
+        raise ValueError("File Smile không có cột 'Rm#'. Vui lòng dùng file khách lưu trú xuất từ Smile.")
+    smile = df1.dropna(subset=['Rm#']).copy()
+    smile['room'] = smile['Rm#'].apply(_norm_room)
+    smile['Arrival'] = pd.to_datetime(smile['Arrival'], errors='coerce') if 'Arrival' in smile else pd.NaT
+    _ln = smile['Last Name'].astype(str).str.strip() if 'Last Name' in smile else ''
+    _fn = smile['First Name'].astype(str).str.strip() if 'First Name' in smile else ''
+    smile['name'] = (_ln + ' ' + _fn).str.strip() if 'Last Name' in smile else ''
+    smile_total = len(smile)
+    # Trừ khách Arrival = hôm nay
+    if 'Arrival' in smile:
+        smile_f = smile[smile['Arrival'].dt.date != today.date()].copy()
+    else:
+        smile_f = smile.copy()
+
+    # ── Đọc file chỉ chứa số phòng: lấy tất cả ô có dữ liệu ──
+    raw = pd.read_excel(io.BytesIO(room_bytes), header=None, dtype=str)
+    rooms_sys = []
+    for _, row_vals in raw.iterrows():
+        for v in row_vals:
+            if pd.isna(v): continue
+            r = _norm_room(v)
+            if not r: continue
+            # bỏ ô tiêu đề nếu lỡ có (vd "Số phòng", "Room", "STT")
+            if _norm_nat(r) in ('sophong', 'phong', 'room', 'rm', 'stt'): continue
+            rooms_sys.append(r)
+    if not rooms_sys:
+        raise ValueError("File số phòng không có dữ liệu. Vui lòng kiểm tra lại file.")
+
+    sys_rooms = set(rooms_sys)
+    _cnt = Counter(rooms_sys)
+    sys_dup = sorted((r for r, c in _cnt.items() if c > 1), key=lambda x: (len(x), x))
+
+    smile_rooms = set(r for r in smile_f['room'] if r)
+
+    def _sortkey(x): return (len(x), x)
+    room_chua = sorted(smile_rooms - sys_rooms, key=_sortkey)  # inhouse nhưng CHƯA có trong file phòng
+    room_thua = sorted(sys_rooms - smile_rooms, key=_sortkey)  # có trong file phòng nhưng KHÔNG còn inhouse
+
+    # Chi tiết khách trong các phòng chưa đăng ký (tiện đăng ký bổ sung)
+    if room_chua:
+        detail = smile_f[smile_f['room'].isin(room_chua)].copy()
+        detail['_arr'] = detail['Arrival'].dt.strftime('%d/%m/%Y') if 'Arrival' in detail else ''
+        _nat = detail['NAT'] if 'NAT' in detail else ''
+        detail = pd.DataFrame({
+            'Số phòng': detail['room'].values,
+            'Họ tên': detail['name'].values,
+            'Quốc tịch': _nat.values if hasattr(_nat, 'values') else _nat,
+            'Ngày đến': detail['_arr'].values if hasattr(detail['_arr'], 'values') else '',
+        }).sort_values('Số phòng', key=lambda s: s.map(lambda x: (len(x), x)))
+    else:
+        detail = pd.DataFrame(columns=['Số phòng', 'Họ tên', 'Quốc tịch', 'Ngày đến'])
+
+    return {
+        'smile_total': smile_total, 'smile_filtered': len(smile_f),
+        'sys_total': len(rooms_sys), 'sys_unique': len(sys_rooms),
+        'smile_rooms': len(smile_rooms),
+        'room_chua': room_chua, 'room_thua': room_thua, 'sys_dup': sys_dup,
+        'room_match': len(smile_rooms & sys_rooms),
+        'detail_chua': detail,
+    }
+
+
 if st.session_state.menu == "recon_room":
     st.button("←  Quay lại", key="back_recon_room", on_click=go_menu, args=("recon",))
     st.write("")
     st.markdown('<div class="section-label">🚪 Kiểm tra hệ thống quản lý lưu trú phòng</div>', unsafe_allow_html=True)
-    st.info("🚧 Tính năng đang được phát triển. Sẽ sớm ra mắt!")
-    st.caption("Chức năng này sẽ đối chiếu số phòng inhouse trên Smile với hệ thống quản lý lưu trú phòng.")
+    st.caption("So khớp số phòng inhouse từ file khách lưu trú Smile với file danh sách số phòng — tìm phòng chưa đăng ký / thừa / trùng.")
 
+    rr1, rr2 = st.columns(2)
+    with rr1:
+        smile_file_r = st.file_uploader("File khách lưu trú Smile (.xlsx)", type=['xlsx'], key="reconr_smile")
+    with rr2:
+        room_file = st.file_uploader("File số phòng (.xlsx — chỉ chứa danh sách số phòng)", type=['xlsx'], key="reconr_room")
+
+    today_str_r = st.text_input("📅 Ngày xuất file (hôm nay)", value=datetime.date.today().strftime('%d/%m/%Y'),
+                                key="reconr_today",
+                                help="Khách có Arrival = ngày này trên Smile sẽ được loại bỏ khỏi đối chiếu")
+
+    st.write("")
+
+    if st.button("🔍 Bắt đầu kiểm tra", type="primary", key="reconr_run",
+                 disabled=(smile_file_r is None or room_file is None), use_container_width=True):
+        with st.spinner("Đang đối chiếu phòng..."):
+            try:
+                today_r = pd.to_datetime(today_str_r, format='%d/%m/%Y')
+                rr = reconcile_rooms(smile_file_r.read(), room_file.read(), today_r)
+
+                st.success("✅ Kiểm tra hoàn tất!")
+
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Phòng inhouse (Smile)", rr['smile_rooms'],
+                          f"{rr['smile_filtered']} khách (từ {rr['smile_total']}, đã trừ arrival hôm nay)")
+                c2.metric("Phòng trong file", rr['sys_unique'],
+                          (f"{rr['sys_total']} dòng" if rr['sys_total'] != rr['sys_unique'] else None))
+                c3.metric("🟢 Phòng khớp", rr['room_match'])
+
+                st.divider()
+                st.markdown("### 🚪 Kết quả đối chiếu phòng")
+
+                n_chua = len(rr['room_chua']); n_thua = len(rr['room_thua']); n_dup = len(rr['sys_dup'])
+
+                m1, m2, m3 = st.columns(3)
+                m1.metric("🔴 Chưa đăng ký", n_chua)
+                m2.metric("🟡 Thừa trong file", n_thua)
+                m3.metric("🟠 Trùng trong file", n_dup)
+
+                if n_chua == 0 and n_thua == 0 and n_dup == 0:
+                    st.success("✅ Khớp hoàn toàn! Không có phòng thiếu/thừa/trùng.")
+                    st.balloons()
+
+                if n_chua > 0:
+                    st.error(f"🔴 {n_chua} phòng có khách inhouse nhưng CHƯA có trong file số phòng: "
+                             + ", ".join(rr['room_chua']))
+                    st.markdown("**Chi tiết khách trong các phòng chưa đăng ký:**")
+                    st.dataframe(rr['detail_chua'], use_container_width=True, hide_index=True)
+                    _csv_r = rr['detail_chua'].to_csv(index=False).encode('utf-8-sig')
+                    st.download_button("⬇️ Tải danh sách phòng chưa đăng ký (CSV)", _csv_r,
+                                       file_name="phong_chua_dang_ky.csv", mime="text/csv")
+                else:
+                    st.success("✅ Tất cả phòng inhouse đều đã có trong file số phòng.")
+
+                if n_thua > 0:
+                    st.warning(f"🟡 {n_thua} phòng có trong file nhưng KHÔNG còn khách inhouse "
+                               f"(có thể đã checkout nhưng chưa gỡ): "
+                               + ", ".join(rr['room_thua']))
+
+                if n_dup > 0:
+                    st.warning(f"🟠 {n_dup} phòng bị TRÙNG (xuất hiện nhiều lần) trong file số phòng: "
+                               + ", ".join(rr['sys_dup']))
+
+            except Exception as e:
+                st.error(f"❌ Lỗi: {e}")
+                st.exception(e)
