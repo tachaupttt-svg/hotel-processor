@@ -1077,10 +1077,16 @@ components.html("""
 
     function dismiss(){
         s.classList.add('splash-exit');
-        setTimeout(function(){ s.remove(); var c = doc.getElementById('splash-style'); if (c) c.remove(); }, 850);
+        win.setTimeout(function(){ s.remove(); var c = doc.getElementById('splash-style'); if (c) c.remove(); }, 850);
     }
     s.addEventListener('click', dismiss);
-    setTimeout(dismiss, 4200);
+    // Dùng timer của CỬA SỔ CHA để vẫn chạy dù iframe component bị Streamlit hủy khi rerun
+    win.setTimeout(dismiss, 4200);
+    // Chốt an toàn: sau 9s ép gỡ overlay nếu vì lý do gì đó vẫn còn (tránh chặn lăn chuột)
+    win.setTimeout(function(){
+        var sp = doc.getElementById('splash-overlay'); if (sp) sp.remove();
+        var c = doc.getElementById('splash-style'); if (c) c.remove();
+    }, 9000);
 })();
 </script>
 """, height=0)
@@ -1195,6 +1201,10 @@ _bg_switcher_js = """
     function apply(){
         var app = doc.querySelector('.stApp');
         if (!app) { setTimeout(apply, 300); return; }
+        // Dọn splash bị kẹt (nếu có) — chạy mỗi lần rerun nên luôn tự sửa
+        var sp = doc.getElementById('splash-overlay');
+        if (sp && !sp.__born) { sp.__born = Date.now(); }
+        if (sp && Date.now() - sp.__born > 8000) { sp.remove(); }
         var k = pick();
         if (k === current) return;
         current = k;
