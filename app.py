@@ -810,9 +810,13 @@ def reconcile(smile_bytes, luutru_bytes, today):
     smile['name'] = (smile['Last Name'].astype(str).str.strip() + ' ' +
                      smile['First Name'].astype(str).str.strip())
     smile['room'] = smile['Rm#'].apply(_norm_room)
-    # Lọc: bỏ VNM + bỏ arrival = hôm nay
+    # Cột Departure (dò tên linh hoạt phòng khi khác tên)
+    _dep_col = next((c for c in df1.columns if 'depart' in str(c).lower()), None)
+    smile['Departure'] = pd.to_datetime(df1[_dep_col], errors='coerce') if _dep_col else pd.NaT
+    # Lọc: bỏ VNM + bỏ arrival = hôm nay + bỏ departure = hôm nay (khách trả phòng)
     smile_f = smile[(smile['NAT'] != 'VNM') &
-                    (smile['Arrival'].dt.date != today.date())].copy()
+                    (smile['Arrival'].dt.date != today.date()) &
+                    (smile['Departure'].dt.date != today.date())].copy()
 
     # ── Đọc Lưu trú ──
     df2 = pd.read_excel(io.BytesIO(luutru_bytes), header=9)
@@ -1825,9 +1829,13 @@ def reconcile_rooms(smile_bytes, room_bytes, today):
     _fn = smile['First Name'].astype(str).str.strip() if 'First Name' in smile else ''
     smile['name'] = (_ln + ' ' + _fn).str.strip() if 'Last Name' in smile else ''
     smile_total = len(smile)
-    # Trừ khách Arrival = hôm nay
+    # Cột Departure (dò tên linh hoạt)
+    _dep_col = next((c for c in df1.columns if 'depart' in str(c).lower()), None)
+    smile['Departure'] = pd.to_datetime(df1[_dep_col], errors='coerce') if _dep_col else pd.NaT
+    # Trừ khách Arrival = hôm nay và khách Departure = hôm nay (trả phòng)
     if 'Arrival' in smile:
-        smile_f = smile[smile['Arrival'].dt.date != today.date()].copy()
+        smile_f = smile[(smile['Arrival'].dt.date != today.date()) &
+                        (smile['Departure'].dt.date != today.date())].copy()
     else:
         smile_f = smile.copy()
 
