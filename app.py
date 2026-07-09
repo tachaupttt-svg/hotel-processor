@@ -796,7 +796,7 @@ def _norm_room(r):
     if pd.isna(r): return ''
     s = str(r).strip()
     if s.endswith('.0'): s = s[:-2]
-    return s
+    return s.upper()  # 12a05 và 12A05 là một phòng
 
 def reconcile(smile_bytes, luutru_bytes, today):
     """Đối chiếu file Smile (inhouse) với file trang quản lý lưu trú.
@@ -1867,7 +1867,12 @@ def reconcile_rooms(smile_bytes, room_bytes, today):
     _cnt = Counter(rooms_sys)
     sys_dup = sorted((r for r, c in _cnt.items() if c > 1), key=lambda x: (len(x), x))
 
-    smile_rooms = set(r for r in smile_f['room'] if r)
+    import re as _re3
+    def _is_virtual(r):
+        return bool(_re3.fullmatch(r'9\d{3}', r))  # phòng ảo 9000-9999 (posting master)
+
+    smile_rooms = set(r for r in smile_f['room'] if r and not _is_virtual(r))
+    sys_rooms = set(r for r in sys_rooms if not _is_virtual(r))
 
     def _sortkey(x): return (len(x), x)
     room_chua = sorted(smile_rooms - sys_rooms, key=_sortkey)  # inhouse nhưng CHƯA có trong file phòng
