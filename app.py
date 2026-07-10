@@ -733,13 +733,14 @@ def build_regcards(xlsx_bytes, only_main=True):
             if not val:
                 continue
             if key == 'rm':
-                # Ô số phòng: có thể nhiều phòng → chia tối đa 4 phòng/dòng,
-                # thu nhỏ cỡ chữ vừa bề rộng ô (~205pt tính cả ROOM RATE trống bên phải),
-                # xuống dòng nếu cần. Ô có bề rộng thoải mái tới hết ROOM RATE.
+                # Ô số phòng: 1 phòng → vị trí chuẩn như mẫu gốc;
+                # nhiều phòng → CĂN GIỮA vùng trống giữa nhãn ROOM NO. và ô ROOM RATE,
+                # GIỮ NGUYÊN cỡ chữ (không thu nhỏ), tối đa 3 dòng.
                 rooms = [s.strip() for s in val.split(',') if s.strip()]
-                RM_MAXW = 75  # chỉ trong ô ROOM NO (trước nhãn ROOM RATE)
-                RM_SIZE = SIZE
-                # Gom thành các dòng ≤ RM_MAXW
+                RM_X1 = 498.0                      # mép phải vùng trống (trước đường kẻ ROOM RATE)
+                RM_CX = (x + RM_X1) / 2            # tâm vùng trống
+                RM_MAXW = RM_X1 - x                # ~137pt bề rộng cho phép mỗi dòng
+                fs = SIZE
                 def _wrap(items, fs):
                     lines=[]; cur=''
                     for it in items:
@@ -751,17 +752,18 @@ def build_regcards(xlsx_bytes, only_main=True):
                             cur = it
                     if cur: lines.append(cur)
                     return lines
-                fs = RM_SIZE
-                lines = _wrap(rooms, fs)
-                # Nếu quá 2 dòng → giảm cỡ chữ tới khi ≤ 2 dòng (min 6.5pt)
-                while len(lines) > 2 and fs > 6.5:
-                    fs -= 0.3
+                if len(rooms) <= 1:
+                    c.drawString(x, H - bottom, val)
+                else:
                     lines = _wrap(rooms, fs)
-                c.setFont(FONT, fs)
-                # vẽ từng dòng, dòng 2 cách dòng 1 khoảng (fs+2)
-                for i, ln in enumerate(lines[:2]):
-                    c.drawString(x, H - bottom - i*(fs+2), ln)
-                c.setFont(FONT, SIZE)
+                    # Chỉ khi quá 3 dòng (đoàn cực lớn) mới giảm nhẹ cỡ chữ làm phương án cuối
+                    while len(lines) > 3 and fs > 7:
+                        fs -= 0.3
+                        lines = _wrap(rooms, fs)
+                    c.setFont(FONT, fs)
+                    for i, ln in enumerate(lines[:3]):
+                        c.drawCentredString(RM_CX, H - bottom - i*(fs+1.6), ln)
+                    c.setFont(FONT, SIZE)
             else:
                 maxw = MAXW.get(key)
                 if maxw:
