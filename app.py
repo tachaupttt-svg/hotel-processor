@@ -733,15 +733,16 @@ def build_regcards(xlsx_bytes, only_main=True):
             if not val:
                 continue
             if key == 'rm':
-                # Ô số phòng: 1 phòng → vị trí chuẩn như mẫu gốc;
-                # nhiều phòng → CĂN GIỮA vùng trống giữa nhãn "Số phòng" và nhãn "ROOM RATE"
-                # (đo thật từ mẫu: nhãn ROOM RATE bắt đầu ~425pt → vùng trống 360.6–420).
-                # Giữ nguyên cỡ chữ tới 3 dòng; đoàn lớn: thử 4 dòng sát nhau trước,
-                # bất đắc dĩ mới giảm cỡ chữ. KHÔNG bao giờ bỏ sót phòng.
+                # Ô số phòng: 1 phòng → vị trí chuẩn như mẫu gốc.
+                # Nhiều phòng → căn giữa CHÍNH XÁC giữa 2 nhãn (đo từ 2 ảnh crop độc lập,
+                # sai lệch <1pt): nhãn "ROOM NO./(Số phòng)" kết thúc ~261pt,
+                # nhãn "ROOM RATE/(Giá phòng)" bắt đầu ~441pt.
+                # → Vùng vẽ 266–436pt, TÂM = 351pt, rộng 170pt
+                #   (đủ ~8 phòng/dòng ở cỡ chữ nguyên vẹn 9.8pt → 24 phòng/3 dòng).
                 rooms = [s.strip() for s in val.split(',') if s.strip()]
-                RM_X1 = 420.0
-                RM_CX = (x + RM_X1) / 2            # ≈ 390.3
-                RM_MAXW = RM_X1 - x                # ≈ 59.4pt mỗi dòng
+                RM_X0, RM_X1 = 266.0, 436.0
+                RM_CX = (RM_X0 + RM_X1) / 2        # = 351.0
+                RM_MAXW = RM_X1 - RM_X0            # = 170pt mỗi dòng
                 def _wrap(items, fs):
                     lines=[]; cur=''
                     for it in items:
@@ -759,17 +760,16 @@ def build_regcards(xlsx_bytes, only_main=True):
                     fs = SIZE
                     lines = _wrap(rooms, fs)
                     if len(lines) <= 3:
-                        gap = fs + 1.6             # ≤3 dòng: cỡ chữ nguyên vẹn
+                        gap = fs + 1.6             # tới ~24 phòng: cỡ chữ 9.8pt nguyên vẹn
                     else:
-                        gap = fs + 0.6             # thử 4 dòng sát nhau, vẫn nguyên cỡ chữ
+                        gap = fs + 0.6             # 4 dòng sát nhau, vẫn nguyên cỡ chữ (~32 phòng)
                         while len(lines) > 4 and fs > 7:
-                            fs -= 0.3              # phương án cuối cho đoàn cực lớn
+                            fs -= 0.3              # chống tràn tuyệt đối cho case phi thực tế
                             lines = _wrap(rooms, fs)
-                        if len(lines) > 4:         # đoàn siêu lớn (20+ phòng): 5 dòng nén
-                            gap = fs + 0.2
-                            while len(lines) > 5 and fs > 6:
-                                fs -= 0.3
-                                lines = _wrap(rooms, fs)
+                    c.setFont(FONT, fs)
+                    for i, ln in enumerate(lines):
+                        c.drawCentredString(RM_CX, H - bottom - i*gap, ln)
+                    c.setFont(FONT, SIZE)
                     c.setFont(FONT, fs)
                     for i, ln in enumerate(lines):
                         c.drawCentredString(RM_CX, H - bottom - i*gap, ln)
