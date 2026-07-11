@@ -698,7 +698,8 @@ def build_regcards(xlsx_bytes, only_main=True):
         for r in grp['Rm']:
             if pd.notna(r):
                 rs = _clean_room(r)
-                if rs and rs not in rooms:
+                # Bỏ phòng ảo đầu 9 dạng 9000-9999 (9002, 9005, 9010, 9040... — posting master)
+                if rs and rs not in rooms and not _re.fullmatch(r'9\d{3}', rs):
                     rooms.append(rs)
         groups.append({'main': main, 'rooms': rooms})
 
