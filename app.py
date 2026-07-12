@@ -1006,7 +1006,7 @@ components.html("""
     var oldCss = doc.getElementById('splash-style'); if (oldCss) oldCss.remove();
 
     // Danh sách lời chào — chỉ Tiếng Việt và Tiếng Anh (kiểu iPhone)
-    var GREETINGS = ["Xin chào", "Hello", "Xin chào"];
+    var GREETINGS = ["Xin chào", "Hello"];
 
     var css = doc.createElement('style');
     css.id = 'splash-style';
@@ -1050,8 +1050,8 @@ components.html("""
 
     var el = s.querySelector('#splash-hello');
     var i = 0, timers = [];
-    var STEP = 130;   // thời gian mỗi ký tự hiện ra (ms) — chữ chạy từ từ
-    var HOLD = 850;   // giữ nguyên chữ sau khi gõ xong (ms)
+    var STEP = 85;    // thời gian mỗi ký tự hiện ra (ms) — chữ chạy nhưng nhanh gọn
+    var HOLD = 500;   // giữ nguyên chữ sau khi gõ xong (ms)
 
     function showNext(){
         if (i >= GREETINGS.length){ dismiss(); return; }
@@ -1070,7 +1070,7 @@ components.html("""
         // Gõ xong → giữ → fade ra → chữ tiếp theo
         timers.push(win.setTimeout(function(){
             el.classList.add('fade-out');
-            timers.push(win.setTimeout(showNext, 450));
+            timers.push(win.setTimeout(showNext, 350));
         }, typeDur + HOLD));
     }
     showNext();
