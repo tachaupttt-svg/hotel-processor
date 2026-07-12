@@ -937,6 +937,20 @@ st.markdown("""
     }
     #live-clock {color: #6b6b6b; font-weight: 600;}
     @keyframes fadeIn {from {opacity: 0; transform: translateY(6px);} to {opacity: 1; transform: translateY(0);}}
+
+    /* Hiệu ứng chuyển cảnh khi MỞ một tính năng: cả khung trượt & mờ vào */
+    @keyframes screenEnter {
+        from {opacity: 0; transform: translateY(16px) scale(0.985);}
+        to   {opacity: 1; transform: translateY(0) scale(1);}
+    }
+    .block-container.screen-anim {
+        animation: screenEnter 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+    /* Nút "Mở →" và các nút chính: nhấn xuống nhẹ khi bấm (phản hồi tức thì) */
+    .stButton > button {transition: transform 0.12s ease, box-shadow 0.12s ease;}
+    .stButton > button:active {transform: scale(0.96);}
+    /* Card nhô lên mượt hơn khi rê chuột */
+    .menu-card {transition: transform 0.22s ease, box-shadow 0.22s ease;}
     .section-label {
         font-size: 0.7rem; font-weight: 650; color: #6b6b7e;
         text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem;
@@ -1486,6 +1500,21 @@ def build_arr(book_bytes):
 if st.session_state.menu is None:
     st.markdown('<div class="section-label">✨ Chọn chức năng</div>', unsafe_allow_html=True)
     st.write("")
+else:
+    # Kích hoạt hiệu ứng trượt-vào cho khung nội dung mỗi khi mở một tính năng.
+    # Key theo tên menu → component chạy lại đúng lúc chuyển màn, animation replay.
+    components.html("""
+    <script>
+    (function(){
+        var doc = window.parent.document;
+        var bc = doc.querySelector('.block-container');
+        if (!bc) return;
+        bc.classList.remove('screen-anim');
+        void bc.offsetWidth;           // ép trình duyệt reset animation
+        bc.classList.add('screen-anim');
+    })();
+    </script>
+    """, height=0)
     mcol1, mcol2, mcol3 = st.columns(3)
     with mcol1:
         st.markdown("""
