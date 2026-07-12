@@ -1013,37 +1013,65 @@ components.html("""
     css.textContent = `
       #splash-overlay{position:fixed;inset:0;z-index:999999;overflow:hidden;cursor:pointer;
         display:flex;align-items:center;justify-content:center;
-        background:#f7f7f9;
-        transition:opacity .7s ease;}
+        background:#8a9bb8;
+        transition:opacity .8s ease;}
       #splash-overlay.splash-exit{opacity:0;pointer-events:none;}
-      #splash-hello{
-        font-family:-apple-system,'SF Pro Display','Segoe UI','Helvetica Neue',Arial,sans-serif;
-        font-size:clamp(2.6rem,7vw,4.6rem);font-weight:600;letter-spacing:-0.01em;
-        color:#1d1d1f;text-align:center;padding:0 6vw;
-        opacity:0;will-change:opacity,transform;}
-      #splash-hello.show{animation:hello-inout 1.15s ease forwards;}
-      @keyframes hello-inout{
-        0%{opacity:0;transform:translateY(14px);}
-        18%,72%{opacity:1;transform:translateY(0);}
-        100%{opacity:0;transform:translateY(-14px);}
+      /* Nền gradient nhiều màu chuyển động mượt (kiểu iOS) */
+      #splash-overlay .mesh{position:absolute;inset:-40%;filter:blur(70px);opacity:.9;
+        background:
+          radial-gradient(closest-side at 30% 35%, #f0c86e, transparent 70%),
+          radial-gradient(closest-side at 70% 30%, #5b8def, transparent 70%),
+          radial-gradient(closest-side at 65% 70%, #7fb2c8, transparent 70%),
+          radial-gradient(closest-side at 30% 72%, #e9a13b, transparent 70%),
+          radial-gradient(closest-side at 50% 50%, #8bb0d0, transparent 75%);
+        animation:mesh-move 14s ease-in-out infinite alternate;}
+      @keyframes mesh-move{
+        0%{transform:translate(0,0) rotate(0deg) scale(1.05);}
+        50%{transform:translate(3%,-3%) rotate(8deg) scale(1.18);}
+        100%{transform:translate(-3%,3%) rotate(-6deg) scale(1.08);}
       }
+      #splash-hello{position:relative;z-index:2;
+        font-family:'Segoe Script','Brush Script MT','Snell Roundhand',cursive;
+        font-size:clamp(3rem,9vw,5.4rem);font-weight:400;letter-spacing:0.01em;
+        color:#ffffff;text-align:center;padding:0 6vw;
+        text-shadow:0 2px 18px rgba(0,0,0,.18);white-space:pre;}
+      #splash-hello .ch{opacity:0;display:inline-block;
+        animation:ch-in .5s ease forwards;}
+      @keyframes ch-in{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+      #splash-hello.fade-out{animation:hello-out .5s ease forwards;}
+      @keyframes hello-out{from{opacity:1;}to{opacity:0;transform:translateY(-12px);}}
     `;
     doc.head.appendChild(css);
 
     var s = doc.createElement('div');
     s.id = 'splash-overlay';
-    s.innerHTML = '<div id="splash-hello"></div>';
+    s.innerHTML = '<div class="mesh"></div><div id="splash-hello"></div>';
     doc.body.appendChild(s);
 
     var el = s.querySelector('#splash-hello');
     var i = 0, timers = [];
+    var STEP = 130;   // thời gian mỗi ký tự hiện ra (ms) — chữ chạy từ từ
+    var HOLD = 850;   // giữ nguyên chữ sau khi gõ xong (ms)
+
     function showNext(){
         if (i >= GREETINGS.length){ dismiss(); return; }
-        el.textContent = GREETINGS[i];
-        el.classList.remove('show'); void el.offsetWidth;  // reset animation
-        el.classList.add('show');
-        i++;
-        timers.push(win.setTimeout(showNext, 620));  // nhịp chuyển chữ (nhanh như iPhone)
+        var word = GREETINGS[i]; i++;
+        // Dựng từng ký tự, mỗi ký tự hiện lần lượt cách nhau STEP ms
+        el.className = '';
+        el.innerHTML = '';
+        for (var k = 0; k < word.length; k++){
+            var span = doc.createElement('span');
+            span.className = 'ch';
+            span.textContent = word[k];
+            span.style.animationDelay = (k * STEP) + 'ms';
+            el.appendChild(span);
+        }
+        var typeDur = word.length * STEP;
+        // Gõ xong → giữ → fade ra → chữ tiếp theo
+        timers.push(win.setTimeout(function(){
+            el.classList.add('fade-out');
+            timers.push(win.setTimeout(showNext, 450));
+        }, typeDur + HOLD));
     }
     showNext();
 
