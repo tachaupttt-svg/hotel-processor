@@ -1019,8 +1019,8 @@ components.html("""
     var old = doc.getElementById('splash-overlay'); if (old) old.remove();
     var oldCss = doc.getElementById('splash-style'); if (oldCss) oldCss.remove();
 
-    // Danh sách lời chào — chỉ Tiếng Việt và Tiếng Anh (kiểu iPhone)
-    var GREETINGS = ["Xin chào", "Hello"];
+    // Lời chào — chỉ Tiếng Việt
+    var GREETINGS = ["Xin chào"];
 
     var css = doc.createElement('style');
     css.id = 'splash-style';
@@ -1064,8 +1064,8 @@ components.html("""
 
     var el = s.querySelector('#splash-hello');
     var i = 0, timers = [];
-    var STEP = 85;    // thời gian mỗi ký tự hiện ra (ms) — chữ chạy nhưng nhanh gọn
-    var HOLD = 500;   // giữ nguyên chữ sau khi gõ xong (ms)
+    var STEP = 160;   // thời gian mỗi ký tự hiện ra (ms) — chạy chậm rãi
+    var HOLD = 1100;  // giữ nguyên chữ sau khi gõ xong (ms)
 
     function showNext(){
         if (i >= GREETINGS.length){ dismiss(); return; }
