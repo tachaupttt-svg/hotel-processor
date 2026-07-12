@@ -1497,12 +1497,8 @@ def build_arr(book_bytes):
 
 
 
-if st.session_state.menu is None:
-    st.markdown('<div class="section-label">✨ Chọn chức năng</div>', unsafe_allow_html=True)
-    st.write("")
-else:
-    # Kích hoạt hiệu ứng trượt-vào cho khung nội dung mỗi khi mở một tính năng.
-    # Key theo tên menu → component chạy lại đúng lúc chuyển màn, animation replay.
+# Hiệu ứng trượt-vào khung nội dung khi đang ở trong một tính năng (không phải menu chính)
+if st.session_state.menu is not None:
     components.html("""
     <script>
     (function(){
@@ -1515,6 +1511,10 @@ else:
     })();
     </script>
     """, height=0)
+
+if st.session_state.menu is None:
+    st.markdown('<div class="section-label">✨ Chọn chức năng</div>', unsafe_allow_html=True)
+    st.write("")
     mcol1, mcol2, mcol3 = st.columns(3)
     with mcol1:
         st.markdown("""
