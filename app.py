@@ -624,6 +624,7 @@ def build_dk14(xls_bytes):
 
 
 # ── Regcard PDF builder ───────────────────────────────────────────────────
+@st.cache_resource
 def load_regcard_template():
     path = os.path.join(os.path.dirname(__file__), 'tmpl_regcard.b64')
     with open(path, 'r') as f:
@@ -1004,102 +1005,59 @@ components.html("""
     var old = doc.getElementById('splash-overlay'); if (old) old.remove();
     var oldCss = doc.getElementById('splash-style'); if (oldCss) oldCss.remove();
 
-    var h = new Date().getHours();
-    var isNight = (h >= 18 || h < 5);
+    // Danh sách lời chào — chỉ Tiếng Việt và Tiếng Anh (kiểu iPhone)
+    var GREETINGS = ["Xin chào", "Hello", "Xin chào"];
 
     var css = doc.createElement('style');
     css.id = 'splash-style';
     css.textContent = `
       #splash-overlay{position:fixed;inset:0;z-index:999999;overflow:hidden;cursor:pointer;
         display:flex;align-items:center;justify-content:center;
-        transition:opacity .8s ease, transform .8s ease;}
-      #splash-overlay.sp-day{background:linear-gradient(180deg,#aee1f9 0%,#fde3c1 60%,#ffd1a1 100%);}
-      #splash-overlay.sp-night{background:linear-gradient(180deg,#16213e 0%,#3a3f66 65%,#6b5b8a 100%);}
-      #splash-overlay.splash-exit{opacity:0;transform:scale(1.05);pointer-events:none;}
-
-      .sp-sun{position:absolute;left:50%;bottom:150px;width:190px;height:190px;margin-left:-95px;border-radius:50%;
-        background:radial-gradient(circle at 40% 35%,#fff3c4,#ffcf6b 60%,#ffb347);
-        box-shadow:0 0 110px 45px rgba(255,195,100,.55);animation:sp-rise 2.4s ease-out both;}
-      .sp-moon{position:absolute;left:50%;bottom:220px;width:160px;height:160px;margin-left:-80px;border-radius:50%;
-        background:radial-gradient(circle at 38% 35%,#fffdf2,#ffe9a8 65%,#f5d67a);
-        box-shadow:0 0 90px 35px rgba(255,240,180,.4);animation:sp-rise 2.4s ease-out both;}
-      @keyframes sp-rise{from{transform:translateY(190px);opacity:0;}to{transform:translateY(0);opacity:1;}}
-
-      .sp-star{position:absolute;color:#fff;font-size:.8rem;animation:sp-twinkle 1.8s ease-in-out infinite;}
-      @keyframes sp-twinkle{0%,100%{opacity:.25;}50%{opacity:.95;}}
-
-      .sp-wave{position:absolute;left:0;right:0;bottom:0;height:130px;pointer-events:none;}
-      .sp-wave svg{position:absolute;bottom:0;left:0;width:200%;height:100%;animation:sp-wavemove 8s linear infinite;}
-      .sp-wave svg.w2{opacity:.55;animation-duration:13s;animation-direction:reverse;bottom:14px;}
-      @keyframes sp-wavemove{from{transform:translateX(0);}to{transform:translateX(-50%);}}
-      #splash-overlay.sp-day .sp-wave path{fill:#4fb3d9;}
-      #splash-overlay.sp-day .sp-wave svg.w2 path{fill:#7fd0ec;}
-      #splash-overlay.sp-night .sp-wave path{fill:#2e4a72;}
-      #splash-overlay.sp-night .sp-wave svg.w2 path{fill:#3d5f8f;}
-
-      .sp-palm{position:absolute;bottom:110px;left:5%;font-size:9.5rem;transform-origin:bottom center;
-        animation:sp-sway 3.5s ease-in-out infinite;filter:drop-shadow(0 6px 10px rgba(0,0,0,.18));}
-      @keyframes sp-sway{0%,100%{transform:rotate(-3deg);}50%{transform:rotate(3deg);}}
-      .sp-umbrella{position:absolute;bottom:114px;right:6%;font-size:7rem;animation:sp-pop .7s cubic-bezier(.34,1.56,.64,1) 1s both;
-        filter:drop-shadow(0 6px 10px rgba(0,0,0,.18));}
-      .sp-bird{position:absolute;top:14%;left:-130px;opacity:0;animation:sp-fly 5s linear .6s forwards;}
-      .sp-bird.b2{top:22%;animation-delay:1.4s;animation-duration:6s;}
-      .sp-bird svg{overflow:visible;display:block;}
-      .sp-bird .bwing{transform-box:fill-box;transform-origin:88% 92%;animation:sp-flap .42s ease-in-out infinite alternate;}
-      .sp-bird .bwing.back{animation-delay:.21s;}
-      @keyframes sp-flap{from{transform:rotate(-38deg);}to{transform:rotate(26deg);}}
-      @keyframes sp-fly{0%{transform:translateX(0) translateY(0);opacity:0;}8%{opacity:.85;}
-        50%{transform:translateX(55vw) translateY(-26px);opacity:.85;}100%{transform:translateX(112vw) translateY(6px);opacity:.85;}}
-
-      @keyframes sp-pop{from{opacity:0;transform:translateY(18px) scale(.92);}to{opacity:1;transform:translateY(0) scale(1);}}
+        background:#f7f7f9;
+        transition:opacity .7s ease;}
+      #splash-overlay.splash-exit{opacity:0;pointer-events:none;}
+      #splash-hello{
+        font-family:-apple-system,'SF Pro Display','Segoe UI','Helvetica Neue',Arial,sans-serif;
+        font-size:clamp(2.6rem,7vw,4.6rem);font-weight:600;letter-spacing:-0.01em;
+        color:#1d1d1f;text-align:center;padding:0 6vw;
+        opacity:0;will-change:opacity,transform;}
+      #splash-hello.show{animation:hello-inout 1.15s ease forwards;}
+      @keyframes hello-inout{
+        0%{opacity:0;transform:translateY(14px);}
+        18%,72%{opacity:1;transform:translateY(0);}
+        100%{opacity:0;transform:translateY(-14px);}
+      }
     `;
     doc.head.appendChild(css);
 
-    var wavePath = "M0,60 Q75,95 150,60 T300,60 T450,60 T600,60 T750,60 T900,60 T1050,60 T1200,60 T1350,60 T1500,60 T1650,60 T1800,60 T1950,60 T2100,60 T2250,60 T2400,60 L2400,130 L0,130 Z";
-    var waveSvg = '<svg viewBox="0 0 2400 130" preserveAspectRatio="none"><path d="' + wavePath + '"/></svg>';
-
-    var stars = '';
-    if (isNight) {
-        for (var i = 0; i < 14; i++) {
-            stars += '<div class="sp-star" style="left:' + (4 + Math.random()*92) + '%;top:' + (3 + Math.random()*38) + '%;animation-delay:' + (Math.random()*1.8).toFixed(2) + 's;">✦</div>';
-        }
-    }
-
-    function spBird(w){
-        return '<svg viewBox="0 0 64 44" width="' + w + '" xmlns="http://www.w3.org/2000/svg">' +
-            '<path class="bwing back" d="M30 23 Q 40 4 54 8 Q 42 16 31 27 Z" fill="#e8b3c0"/>' +
-            '<path d="M10 24 L23 20 L23 28 Z" fill="#c76f88"/>' +
-            '<ellipse cx="33" cy="24" rx="12" ry="8.5" fill="#d98a9e"/>' +
-            '<circle cx="46" cy="17" r="6.5" fill="#d98a9e"/>' +
-            '<path d="M52 15 L59 17.5 L52 20 Z" fill="#f0a25f"/>' +
-            '<circle cx="48" cy="16" r="1.4" fill="#4a2f38"/>' +
-            '<path class="bwing" d="M33 22 Q 22 2 8 6 Q 20 15 34 26 Z" fill="#c76f88"/>' +
-            '</svg>';
-    }
-
     var s = doc.createElement('div');
     s.id = 'splash-overlay';
-    s.className = isNight ? 'sp-night' : 'sp-day';
-    s.innerHTML =
-        stars +
-        (isNight ? '<div class="sp-moon"></div>' : '<div class="sp-sun"></div>') +
-        '<div class="sp-bird">' + spBird(66) + '</div><div class="sp-bird b2">' + spBird(46) + '</div>' +
-        '<div class="sp-palm">🌴</div><div class="sp-umbrella">⛱️</div>' +
-        '<div class="sp-wave">' + waveSvg + waveSvg.replace('<svg', '<svg class="w2"') + '</div>';
+    s.innerHTML = '<div id="splash-hello"></div>';
     doc.body.appendChild(s);
 
-    function dismiss(){
-        s.classList.add('splash-exit');
-        win.setTimeout(function(){ s.remove(); var c = doc.getElementById('splash-style'); if (c) c.remove(); }, 850);
+    var el = s.querySelector('#splash-hello');
+    var i = 0, timers = [];
+    function showNext(){
+        if (i >= GREETINGS.length){ dismiss(); return; }
+        el.textContent = GREETINGS[i];
+        el.classList.remove('show'); void el.offsetWidth;  // reset animation
+        el.classList.add('show');
+        i++;
+        timers.push(win.setTimeout(showNext, 620));  // nhịp chuyển chữ (nhanh như iPhone)
     }
-    s.addEventListener('click', dismiss);
-    // Dùng timer của CỬA SỔ CHA để vẫn chạy dù iframe component bị Streamlit hủy khi rerun
-    win.setTimeout(dismiss, 4200);
-    // Chốt an toàn: sau 9s ép gỡ overlay nếu vì lý do gì đó vẫn còn (tránh chặn lăn chuột)
+    showNext();
+
+    function dismiss(){
+        timers.forEach(function(t){ win.clearTimeout(t); });
+        s.classList.add('splash-exit');
+        win.setTimeout(function(){ s.remove(); var c = doc.getElementById('splash-style'); if (c) c.remove(); }, 750);
+    }
+    s.addEventListener('click', dismiss);  // chạm để bỏ qua
+    // Chốt an toàn: ép gỡ overlay sau 12s dù có sự cố (tránh chặn thao tác)
     win.setTimeout(function(){
         var sp = doc.getElementById('splash-overlay'); if (sp) sp.remove();
         var c = doc.getElementById('splash-style'); if (c) c.remove();
-    }, 9000);
+    }, 12000);
 })();
 </script>
 """, height=0)
@@ -1193,9 +1151,11 @@ _BG_PALETTES = {
                   blossom="#a86f8a", blossom_op="0.35", stars=True),
 }
 
-_BG_B64 = {k: _b64.b64encode(_fuji_svg(v).encode()).decode() for k, v in _BG_PALETTES.items()}
-
-_bg_switcher_js = """
+@st.cache_resource
+def _build_bg_switcher_js():
+    """Sinh 3 cảnh nền + đóng gói JS — cache để không chạy lại ở mỗi rerun."""
+    b64 = {k: _b64.b64encode(_fuji_svg(v).encode()).decode() for k, v in _BG_PALETTES.items()}
+    js = """
 <script>
 (function(){
     var doc = window.parent.document;
@@ -1204,7 +1164,6 @@ _bg_switcher_js = """
         noon: "__B64_NOON__",
         night: "__B64_NIGHT__"
     };
-    var current = null;
     function pick(){
         var h = new Date().getHours();
         if (h >= 5 && h < 11) return 'morning';
@@ -1219,8 +1178,9 @@ _bg_switcher_js = """
         if (sp && !sp.__born) { sp.__born = Date.now(); }
         if (sp && Date.now() - sp.__born > 8000) { sp.remove(); }
         var k = pick();
-        if (k === current) return;
-        current = k;
+        // Trạng thái lưu trên DOM (không phải biến iframe) → rerun không re-apply, không flash
+        if (app.dataset.hpBg === k) return;
+        app.dataset.hpBg = k;
         app.style.transition = 'background 1.2s ease';
         app.style.background = 'url("data:image/svg+xml;base64,' + BG[k] + '") center 35% / cover no-repeat fixed';
     }
@@ -1228,9 +1188,12 @@ _bg_switcher_js = """
     setInterval(apply, 60000); // tự chuyển cảnh khi bước sang khung giờ khác
 })();
 </script>
-""".replace("__B64_MORNING__", _BG_B64["morning"]).replace("__B64_NOON__", _BG_B64["noon"]).replace("__B64_NIGHT__", _BG_B64["night"])
+"""
+    return (js.replace("__B64_MORNING__", b64["morning"])
+              .replace("__B64_NOON__", b64["noon"])
+              .replace("__B64_NIGHT__", b64["night"]))
 
-components.html(_bg_switcher_js, height=0)
+components.html(_build_bg_switcher_js(), height=0)
 
 components.html("""
 <div style="
@@ -1282,11 +1245,8 @@ components.html("""
 <script>
 (function(){
     var doc = window.parent.document;
-    // Xóa lớp cũ nếu có (tránh nhân đôi khi rerun)
-    var old = doc.getElementById('deco-layer-outer');
-    if (old) old.remove();
-    var oldStyle = doc.getElementById('deco-style');
-    if (oldStyle) oldStyle.remove();
+    // Nếu lớp trang trí đã tồn tại thì GIỮ NGUYÊN (tránh mây/chim giật lại từ đầu mỗi rerun)
+    if (doc.getElementById('deco-layer-outer')) return;
 
     // CSS
     var css = doc.createElement('style');
@@ -1603,40 +1563,49 @@ if st.session_state.menu == "daily":
                 progress.progress(100, text="Hoàn tất!")
                 progress.empty()
 
-                st.success("✅ Xử lý hoàn tất!")
-
-                # Thống kê (chỉ hiện nếu có XLSX)
+                # Lưu kết quả vào session — kết quả & nút tải không biến mất sau rerun
+                _daily = {'files_made': files_made, 'zip': zip_buf.getvalue(),
+                          'date_str': date_str, 'has_xlsx': has_xlsx, 'has_dk14': has_dk14}
                 if has_xlsx:
-                    c1,c2,c3,c4 = st.columns(4)
-                    c1.metric("Tổng khách", len(df))
-                    c2.metric("Quốc tế", len(df_intl))
-                    c3.metric("Việt Nam", len(df_vn))
-                    c4.metric("GKS + GBL", f"{gks_cnt} + {gbl_cnt}")
-                    st.info(f"💱 Đã quy đổi tỷ giá cho **{conv}** ô (đã tô vàng)")
-
                     unknown_nats = []
                     for q in df_intl.get('QUỐC TỊCH', pd.Series([], dtype=str)).dropna().unique():
                         mapped = lookup_nat_kbtt(q)
                         if not _re.match(r'^[A-Z]{2,3} - ', str(mapped)):
                             unknown_nats.append(str(q))
-                    if unknown_nats:
-                        st.warning("⚠️ Quốc tịch chưa có mã (giữ nguyên tên, cần kiểm tra): " + ", ".join(unknown_nats))
-                elif has_dk14:
-                    st.info("ℹ️ Chỉ tạo file ĐK14 (không có file XLSX dữ liệu khách).")
-
-                st.markdown("**File đã tạo:** " + " · ".join(files_made))
-
-                st.download_button(
-                    label="⬇️ Tải về tất cả file (ZIP)",
-                    data=zip_buf.getvalue(),
-                    file_name=f"hotel_{date_str}.zip",
-                    mime="application/zip",
-                    use_container_width=True,
-                    type="primary"
-                )
+                    _daily.update({'total': len(df), 'intl': len(df_intl), 'vn': len(df_vn),
+                                   'gks': gks_cnt, 'gbl': gbl_cnt, 'conv': conv,
+                                   'unknown_nats': unknown_nats})
+                st.session_state['daily_results'] = _daily
             except Exception as e:
+                st.session_state.pop('daily_results', None)
                 st.error(f"❌ Lỗi: {e}")
                 st.exception(e)
+
+    _dr = st.session_state.get('daily_results')
+    if _dr:
+        st.success("✅ Xử lý hoàn tất!")
+        if _dr['has_xlsx']:
+            c1,c2,c3,c4 = st.columns(4)
+            c1.metric("Tổng khách", _dr['total'])
+            c2.metric("Quốc tế", _dr['intl'])
+            c3.metric("Việt Nam", _dr['vn'])
+            c4.metric("GKS + GBL", f"{_dr['gks']} + {_dr['gbl']}")
+            st.info(f"💱 Đã quy đổi tỷ giá cho **{_dr['conv']}** ô (đã tô vàng)")
+            if _dr['unknown_nats']:
+                st.warning("⚠️ Quốc tịch chưa có mã (giữ nguyên tên, cần kiểm tra): " + ", ".join(_dr['unknown_nats']))
+        elif _dr['has_dk14']:
+            st.info("ℹ️ Chỉ tạo file ĐK14 (không có file XLSX dữ liệu khách).")
+
+        st.markdown("**File đã tạo:** " + " · ".join(_dr['files_made']))
+
+        st.download_button(
+            label="⬇️ Tải về tất cả file (ZIP)",
+            data=_dr['zip'],
+            file_name=f"hotel_{_dr['date_str']}.zip",
+            mime="application/zip",
+            use_container_width=True,
+            type="primary"
+        )
 
 # ── Regcard screen ────────────────────────────────────────────────────────
 if st.session_state.menu == "regcard":
@@ -1791,49 +1760,51 @@ if st.session_state.menu == "recon_person":
         with st.spinner("Đang đối chiếu..."):
             try:
                 today = pd.to_datetime(today_str, format='%d/%m/%Y')
-                r = reconcile(smile_file.read(), luutru_file.read(), today)
-
-                st.success("✅ Kiểm tra hoàn tất!")
-
-                c1, c2 = st.columns(2)
-                c1.metric("Smile (sau lọc)", r['smile_filtered'], f"từ {r['smile_total']} (bỏ VNM + arrival hôm nay)")
-                c2.metric("Lưu trú (sau lọc)", r['luutru_filtered'], f"từ {r['luutru_total']} (bỏ đi dự kiến hôm nay)")
-
-                st.divider()
-                st.markdown("### 👤 Kết quả đối chiếu người (theo số hộ chiếu)")
-
-                n_chua = len(r['chua_dk']); n_thua = len(r['thua']); n_dup = len(r['dup'])
-
-                # Bảng tổng hợp chênh lệch
-                m1, m2, m3 = st.columns(3)
-                m1.metric("🔴 Chưa đăng ký", n_chua)
-                m2.metric("🟡 Có/lưu trú, thiếu/Smile", n_thua)
-                m3.metric("🟠 Đăng ký trùng", n_dup)
-
-                if n_chua == 0 and n_thua == 0 and n_dup == 0:
-                    st.success("✅ Khớp hoàn toàn! Không có ai thiếu/thừa/trùng.")
-
-                if n_chua > 0:
-                    st.error(f"🔴 {n_chua} khách trên Smile nhưng CHƯA đăng ký lưu trú:")
-                    st.dataframe(r['chua_dk'], use_container_width=True, hide_index=True)
-                else:
-                    st.success("✅ Không có khách nào chưa đăng ký lưu trú.")
-
-                if n_thua > 0:
-                    st.warning(f"🟡 Chênh lệch **{n_thua} người**: có trên Trang quản lý người nước ngoài nhưng KHÔNG có trên Smile (có thể đã checkout nhưng chưa xóa khỏi lưu trú):")
-                    st.dataframe(r['thua'], use_container_width=True, hide_index=True)
-                    # Nút tải danh sách chênh lệch
-                    _csv = r['thua'].to_csv(index=False).encode('utf-8-sig')
-                    st.download_button("⬇️ Tải danh sách chênh lệch (CSV)", _csv,
-                                       file_name="chenh_lech_luu_tru.csv", mime="text/csv")
-
-                if n_dup > 0:
-                    st.warning(f"🟠 {n_dup} dòng ĐĂNG KÝ TRÙNG trên lưu trú:")
-                    st.dataframe(r['dup'], use_container_width=True, hide_index=True)
-
+                st.session_state['recon_results'] = reconcile(smile_file.read(), luutru_file.read(), today)
             except Exception as e:
+                st.session_state.pop('recon_results', None)
                 st.error(f"❌ Lỗi: {e}")
                 st.exception(e)
+
+    r = st.session_state.get('recon_results')
+    if r:
+        st.success("✅ Kiểm tra hoàn tất!")
+
+        c1, c2 = st.columns(2)
+        c1.metric("Smile (sau lọc)", r['smile_filtered'], f"từ {r['smile_total']} (bỏ VNM + arrival/departure hôm nay)")
+        c2.metric("Lưu trú (sau lọc)", r['luutru_filtered'], f"từ {r['luutru_total']} (bỏ đi dự kiến hôm nay)")
+
+        st.divider()
+        st.markdown("### 👤 Kết quả đối chiếu người (theo số hộ chiếu)")
+
+        n_chua = len(r['chua_dk']); n_thua = len(r['thua']); n_dup = len(r['dup'])
+
+        # Bảng tổng hợp chênh lệch
+        m1, m2, m3 = st.columns(3)
+        m1.metric("🔴 Chưa đăng ký", n_chua)
+        m2.metric("🟡 Có/lưu trú, thiếu/Smile", n_thua)
+        m3.metric("🟠 Đăng ký trùng", n_dup)
+
+        if n_chua == 0 and n_thua == 0 and n_dup == 0:
+            st.success("✅ Khớp hoàn toàn! Không có ai thiếu/thừa/trùng.")
+
+        if n_chua > 0:
+            st.error(f"🔴 {n_chua} khách trên Smile nhưng CHƯA đăng ký lưu trú:")
+            st.dataframe(r['chua_dk'], use_container_width=True, hide_index=True)
+        else:
+            st.success("✅ Không có khách nào chưa đăng ký lưu trú.")
+
+        if n_thua > 0:
+            st.warning(f"🟡 Chênh lệch **{n_thua} người**: có trên Trang quản lý người nước ngoài nhưng KHÔNG có trên Smile (có thể đã checkout nhưng chưa xóa khỏi lưu trú):")
+            st.dataframe(r['thua'], use_container_width=True, hide_index=True)
+            # Nút tải danh sách chênh lệch
+            _csv = r['thua'].to_csv(index=False).encode('utf-8-sig')
+            st.download_button("⬇️ Tải danh sách chênh lệch (CSV)", _csv,
+                               file_name="chenh_lech_luu_tru.csv", mime="text/csv")
+
+        if n_dup > 0:
+            st.warning(f"🟠 {n_dup} dòng ĐĂNG KÝ TRÙNG trên lưu trú:")
+            st.dataframe(r['dup'], use_container_width=True, hide_index=True)
 
 # ── Kiểm tra hệ thống quản lý lưu trú phòng ────────────────────────────────
 def reconcile_rooms(smile_bytes, room_bytes, today):
@@ -1938,52 +1909,55 @@ if st.session_state.menu == "recon_room":
         with st.spinner("Đang đối chiếu phòng..."):
             try:
                 today_r = pd.to_datetime(today_str_r, format='%d/%m/%Y')
-                rr = reconcile_rooms(smile_file_r.read(), room_file.read(), today_r)
-
-                st.success("✅ Kiểm tra hoàn tất!")
-
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Phòng inhouse (Smile)", rr['smile_rooms'],
-                          f"{rr['smile_filtered']} khách (từ {rr['smile_total']}, đã trừ arrival hôm nay)")
-                c2.metric("Phòng trong file", rr['sys_unique'],
-                          (f"{rr['sys_total']} dòng" if rr['sys_total'] != rr['sys_unique'] else None))
-                c3.metric("🟢 Phòng khớp", rr['room_match'])
-
-                st.divider()
-                st.markdown("### 🚪 Kết quả đối chiếu phòng")
-
-                n_chua = len(rr['room_chua']); n_thua = len(rr['room_thua']); n_dup = len(rr['sys_dup'])
-
-                m1, m2, m3 = st.columns(3)
-                m1.metric("🔴 Chưa đăng ký", n_chua)
-                m2.metric("🟡 Thừa trong file", n_thua)
-                m3.metric("🟠 Trùng trong file", n_dup)
-
-                if n_chua == 0 and n_thua == 0 and n_dup == 0:
-                    st.success("✅ Khớp hoàn toàn! Không có phòng thiếu/thừa/trùng.")
-                    st.balloons()
-
-                if n_chua > 0:
-                    st.error(f"🔴 {n_chua} phòng có khách inhouse nhưng CHƯA có trong file số phòng: "
-                             + ", ".join(rr['room_chua']))
-                    st.markdown("**Chi tiết khách trong các phòng chưa đăng ký:**")
-                    st.dataframe(rr['detail_chua'], use_container_width=True, hide_index=True)
-                    _csv_r = rr['detail_chua'].to_csv(index=False).encode('utf-8-sig')
-                    st.download_button("⬇️ Tải danh sách phòng chưa đăng ký (CSV)", _csv_r,
-                                       file_name="phong_chua_dang_ky.csv", mime="text/csv")
-                else:
-                    st.success("✅ Tất cả phòng inhouse đều đã có trong file số phòng.")
-
-                if n_thua > 0:
-                    st.warning(f"🟡 {n_thua} phòng có trong file nhưng KHÔNG còn khách inhouse "
-                               f"(có thể đã checkout nhưng chưa gỡ): "
-                               + ", ".join(rr['room_thua']))
-
-                if n_dup > 0:
-                    st.warning(f"🟠 {n_dup} phòng bị TRÙNG (xuất hiện nhiều lần) trong file số phòng: "
-                               + ", ".join(rr['sys_dup']))
-
+                st.session_state['reconr_results'] = reconcile_rooms(smile_file_r.read(), room_file.read(), today_r)
             except Exception as e:
+                st.session_state.pop('reconr_results', None)
                 st.error(f"❌ Lỗi: {e}")
                 st.exception(e)
+
+    rr = st.session_state.get('reconr_results')
+    if rr:
+        st.success("✅ Kiểm tra hoàn tất!")
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Phòng inhouse (Smile)", rr['smile_rooms'],
+                  f"{rr['smile_filtered']} khách (từ {rr['smile_total']}, đã trừ arrival hôm nay)")
+        c2.metric("Phòng trong file", rr['sys_unique'],
+                  (f"{rr['sys_total']} dòng" if rr['sys_total'] != rr['sys_unique'] else None))
+        c3.metric("🟢 Phòng khớp", rr['room_match'])
+
+        st.divider()
+        st.markdown("### 🚪 Kết quả đối chiếu phòng")
+
+        n_chua = len(rr['room_chua']); n_thua = len(rr['room_thua']); n_dup = len(rr['sys_dup'])
+
+        m1, m2, m3 = st.columns(3)
+        m1.metric("🔴 Chưa đăng ký", n_chua)
+        m2.metric("🟡 Thừa trong file", n_thua)
+        m3.metric("🟠 Trùng trong file", n_dup)
+
+        if n_chua == 0 and n_thua == 0 and n_dup == 0:
+            st.success("✅ Khớp hoàn toàn! Không có phòng thiếu/thừa/trùng.")
+            st.balloons()
+
+        if n_chua > 0:
+            st.error(f"🔴 {n_chua} phòng có khách inhouse nhưng CHƯA có trong file số phòng: "
+                     + ", ".join(rr['room_chua']))
+            st.markdown("**Chi tiết khách trong các phòng chưa đăng ký:**")
+            st.dataframe(rr['detail_chua'], use_container_width=True, hide_index=True)
+            _csv_r = rr['detail_chua'].to_csv(index=False).encode('utf-8-sig')
+            st.download_button("⬇️ Tải danh sách phòng chưa đăng ký (CSV)", _csv_r,
+                               file_name="phong_chua_dang_ky.csv", mime="text/csv")
+        else:
+            st.success("✅ Tất cả phòng inhouse đều đã có trong file số phòng.")
+
+        if n_thua > 0:
+            st.warning(f"🟡 {n_thua} phòng có trong file nhưng KHÔNG còn khách inhouse "
+                       f"(có thể đã checkout nhưng chưa gỡ): "
+                       + ", ".join(rr['room_thua']))
+
+        if n_dup > 0:
+            st.warning(f"🟠 {n_dup} phòng bị TRÙNG (xuất hiện nhiều lần) trong file số phòng: "
+                       + ", ".join(rr['sys_dup']))
+
 
