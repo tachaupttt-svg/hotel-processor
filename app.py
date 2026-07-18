@@ -671,12 +671,14 @@ def build_regcards(xlsx_bytes, only_main=True):
         'name':(125.50,109.60),'conf':(526.75,108.52),'arrival':(119.90,144.22),
         'departure':(329.90,144.22),'nights':(500.30,144.22),'type':(113.60,179.92),
         'rm':(360.60,179.92),'company':(221.40,216.32),
+        'special':(137.40,288.40),
     }
     # Ô che dữ liệu cũ — vừa khít vùng chữ, không lấn đường kẻ bảng
     BLANK = [
         (125,99,250,110.5),(526,98,568,109.5),(119,133.5,168,145.2),
         (329,133.5,378,145.2),(500,133.5,512,145.2),(113,169,145,180.9),
         (360,169,410,180.9),(221,205.5,320,217.3),
+        (135,277,575,289.4),   # che dòng "AI Lunch ( EUR )..." in sẵn trên template
     ]
 
     # ── Gộp theo Conf# ──
@@ -702,7 +704,15 @@ def build_regcards(xlsx_bytes, only_main=True):
                 # Bỏ phòng ảo đầu 9 dạng 9000-9999 (9002, 9005, 9010, 9040... — posting master)
                 if rs and rs not in rooms and not _re.fullmatch(r'9\d{3}', rs):
                     rooms.append(rs)
-        groups.append({'main': main, 'rooms': rooms})
+        # Gom mã Specials của cả nhóm (để bắt CN/EB dù nằm ở dòng nào)
+        spec_codes = set()
+        if 'Specials' in grp.columns:
+            for sv in grp['Specials'].dropna():
+                for code in str(sv).split(','):
+                    code = code.strip().upper()
+                    if code:
+                        spec_codes.add(code)
+        groups.append({'main': main, 'rooms': rooms, 'specials': spec_codes})
 
     tmpl_bytes = load_regcard_template()
     writer = PdfWriter()
@@ -712,6 +722,21 @@ def build_regcards(xlsx_bytes, only_main=True):
         name = _rc_clean_name(row.get('Name'))
         if not name:
             continue
+        company = str(row.get('Company')) if pd.notna(row.get('Company')) else ''
+        # ── Ô SPECIAL REQUEST ──
+        # Mặc định: AI Lunch, AI Dinner, Minibar set up.
+        # CELERIS → thêm ( EUR ) sau Lunch & Dinner.
+        # Specials có CN → thêm Connecting Room; có EB → thêm Extra Bed.
+        if _norm_nat(company).startswith('celeris'):
+            sr = 'AI Lunch ( EUR ), AI Dinner ( EUR ), Minibar set up'
+        else:
+            sr = 'AI Lunch, AI Dinner, Minibar set up'
+        _spec = g.get('specials', set())
+        if 'CN' in _spec:
+            sr += ', Connecting Room'
+        if 'EB' in _spec:
+            sr += ', Extra Bed'
+
         data = {
             'name': name,
             'conf': _rc_conf(row.get('Conf#')),
@@ -720,7 +745,8 @@ def build_regcards(xlsx_bytes, only_main=True):
             'nights': _rc_nights(row.get('Arrival'), row.get('Departure')),
             'type': str(row.get('Type')) if pd.notna(row.get('Type')) else '',
             'rm': ', '.join(g['rooms']),   # gộp các số phòng
-            'company': str(row.get('Company')) if pd.notna(row.get('Company')) else '',
+            'company': company,
+            'special': sr,
         }
         buf = io.BytesIO()
         c = rl_canvas.Canvas(buf, pagesize=(595,841))
@@ -772,13 +798,19 @@ def build_regcards(xlsx_bytes, only_main=True):
                     for i, ln in enumerate(lines):
                         c.drawCentredString(RM_CX, H - bottom - i*gap, ln)
                     c.setFont(FONT, SIZE)
-                    c.setFont(FONT, fs)
-                    for i, ln in enumerate(lines):
-                        c.drawCentredString(RM_CX, H - bottom - i*gap, ln)
-                    c.setFont(FONT, SIZE)
             else:
                 maxw = MAXW.get(key)
-                if maxw:
+                if key == 'special':
+                    # Ô special: vẽ từ x=137.4, giới hạn mép phải bảng ~573 → rộng ~436pt.
+                    # Thu nhỏ nhẹ nếu quá dài (hiếm), giữ nguyên baseline dòng in sẵn.
+                    SP_MAXW = 573 - x
+                    fs = SIZE
+                    while fs > 7 and c.stringWidth(val, FONT, fs) > SP_MAXW:
+                        fs -= 0.2
+                    c.setFont(FONT, fs)
+                    c.drawString(x, H - bottom, val)
+                    c.setFont(FONT, SIZE)
+                elif maxw:
                     fs = SIZE
                     while fs > 6 and c.stringWidth(val, FONT, fs) > maxw:
                         fs -= 0.3
