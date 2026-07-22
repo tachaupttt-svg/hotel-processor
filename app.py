@@ -630,6 +630,31 @@ def load_regcard_template():
     with open(path, 'r') as f:
         return base64.b64decode(f.read())
 
+def load_group_template():
+    path = os.path.join(os.path.dirname(__file__), 'tmpl_group.b64')
+    with open(path, 'r') as f:
+        return base64.b64decode(f.read())
+
+def _grp_date(d):
+    """Ngày cho regcard group: dd/mm/yyyy (như mẫu 24/07/2026)."""
+    if pd.isna(d): return ''
+    if hasattr(d, 'strftime'):
+        return f"{d.day:02d}/{d.month:02d}/{d.year}"
+    s = str(d).strip()
+    if '/' in s:
+        p = s.split('/')
+        if len(p) == 3:
+            dd, mm, yy = p
+            if len(yy) == 2: yy = '20' + yy
+            return f"{int(dd):02d}/{int(mm):02d}/{yy}"
+        return s
+    # Chuỗi ISO yyyy-mm-dd
+    try:
+        t = pd.to_datetime(s)
+        return f"{t.day:02d}/{t.month:02d}/{t.year}"
+    except Exception:
+        return s
+
 def _rc_clean_name(n):
     if pd.isna(n): return ''
     return str(n).strip().rstrip(',').strip()
@@ -659,6 +684,69 @@ def _rc_nights(arr,dep):
         d=pd.Timestamp(f"20{p[2]}-{p[1]}-{p[0]}") if len(p[2])==2 else pd.to_datetime(dep)
         return str((d-a).days)
     except: return ''
+
+def build_group_regcard(grp_df, tmpl_bytes):
+    """Vẽ 1 Registration Card for Group từ các dòng cùng 1 mã Group.
+    Trả về trang PDF đã merge. Bảng Kind of rooms để trống (điền tay)."""
+    H = 841.0
+    FONT = "Times-Roman"; SIZE = 11
+    first = grp_df.iloc[0]
+
+    # Group Code = giá trị cột Group
+    gcode = first.get('Group')
+    if pd.notna(gcode):
+        gcode = str(int(gcode)) if isinstance(gcode, (int, float)) else str(gcode)
+    else:
+        gcode = ''
+
+    # Số phòng: đếm phòng unique, loại phòng ảo 9xxx
+    rooms = set()
+    for r in grp_df['Rm'].dropna():
+        s = str(r).strip()
+        if s.endswith('.0'): s = s[:-2]
+        if s and not _re.fullmatch(r'9\d{3}', s):
+            rooms.add(s.upper())
+    n_rooms = len(rooms)
+
+    # Số pax = tổng Adt + Chl + Enf
+    def _sum(col):
+        return int(grp_df[col].fillna(0).sum()) if col in grp_df.columns else 0
+    n_pax = _sum('Adt') + _sum('Chl') + _sum('Enf')
+
+    data = {
+        'arrival':   (155.6, 181.2, _grp_date(first.get('Arrival'))),
+        'departure': (436.9, 181.2, _grp_date(first.get('Departure'))),
+        'gcode':     (48.2,  261.6, gcode),
+        'gname':     (165.7, 263.9, _rc_clean_name(first.get('Name'))),
+        'agent':     (364.4, 263.9, str(first.get('Company')) if pd.notna(first.get('Company')) else ''),
+        'nrooms':    (50.9,  330.6, str(n_rooms)),
+        'npax':      (187.2, 326.2, str(n_pax)),
+    }
+
+    buf = io.BytesIO()
+    c = rl_canvas.Canvas(buf, pagesize=(595, 841))
+    c.setFillColor(black)
+    c.setFont(FONT, SIZE)
+    for key, (x, bottom, val) in data.items():
+        if not val:
+            continue
+        # thu nhỏ nếu tên đoàn / hãng quá dài
+        maxw = {'gname': 185, 'agent': 175}.get(key)
+        fs = SIZE
+        if maxw:
+            while fs > 7 and c.stringWidth(val, FONT, fs) > maxw:
+                fs -= 0.3
+        c.setFont(FONT, fs)
+        c.drawString(x, H - bottom, val)
+        c.setFont(FONT, SIZE)
+    c.save(); buf.seek(0)
+
+    base = PdfReader(io.BytesIO(tmpl_bytes))
+    overlay = PdfReader(buf)
+    page = base.pages[0]
+    page.merge_page(overlay.pages[0])
+    return page
+
 
 def build_regcards(xlsx_bytes, only_main=True):
     """Tạo PDF regcard hàng loạt, gộp theo Conf# (đoàn nhiều phòng → 1 regcard,
@@ -691,6 +779,33 @@ def build_regcards(xlsx_bytes, only_main=True):
 
     df = df.copy()
     df['_conf_ff'] = df['Conf#'].ffill()
+
+    # ── Tách các booking ĐOÀN (có mã Group) để dùng mẫu Registration Card for Group ──
+    # KHÔNG ffill cột Group — chỉ dòng có sẵn mã Group mới thuộc đoàn.
+    # Các dòng cùng Conf# trong đoàn: điền Group xuống theo từng Conf# nếu dòng đầu có Group.
+    if 'Group' in df.columns:
+        # Điền mã Group xuống các dòng cùng Conf# (đoàn nhiều phòng, chỉ dòng đầu có Group)
+        df['_group_ff'] = df.groupby('_conf_ff')['Group'].transform(
+            lambda s: s.ffill().bfill() if s.notna().any() else s)
+    else:
+        df['_group_ff'] = pd.NA
+    has_group = df['_group_ff'].notna()
+    df_group = df[has_group].copy()
+    df_normal = df[~has_group].copy()
+
+    writer = PdfWriter()
+    count = 0
+
+    # 1) Regcard cho từng ĐOÀN (gộp theo mã Group)
+    if len(df_group):
+        grp_tmpl = load_group_template()
+        for _gid, gdf in df_group.groupby('_group_ff', sort=False):
+            page = build_group_regcard(gdf, grp_tmpl)
+            writer.add_page(page)
+            count += 1
+
+    # 2) Regcard thường cho các booking lẻ (gộp theo Conf#)
+    df = df_normal
     groups = []
     for conf_val, grp in df.groupby('_conf_ff', sort=False):
         main_rows = grp[grp['Conf#'].notna()]
@@ -715,8 +830,6 @@ def build_regcards(xlsx_bytes, only_main=True):
         groups.append({'main': main, 'rooms': rooms, 'specials': spec_codes})
 
     tmpl_bytes = load_regcard_template()
-    writer = PdfWriter()
-    count = 0
     for g in groups:
         row = g['main']
         name = _rc_clean_name(row.get('Name'))
