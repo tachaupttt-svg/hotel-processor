@@ -1401,8 +1401,8 @@ def build_arr(book_bytes):
 
     Quy tắc dữ liệu:
     - Conf# trùng nhau = 1 booking; J = số phòng UNIQUE (loại phòng ảo 9000-9999).
-    - CÀ THẺ: Company AGODA/EXPEDIA/CTRIP · THU TIỀN: BOOKING.COM hoặc Notice chứa
-      "RC ... C/I" (loại "RC TA", "TACC", "GUEST PAID") · LUNCH IN: Notice chứa "LUNCH".
+    - CÀ THẺ: Company AGODA/EXPEDIA/CTRIP hoặc Notice chứa "TACC" · THU TIỀN: BOOKING.COM
+      hoặc Notice chứa "RC ... C/I" (loại "RC TA", "TACC", "GUEST PAID") · LUNCH IN: "LUNCH".
     """
     import re as _re2
     import numpy as _np
@@ -1489,12 +1489,14 @@ def build_arr(book_bytes):
         comp_key = _norm_nat(company)
         _nu = notice.upper()
         labels = []
-        if any(comp_key.startswith(x) for x in CA_THE):
+        # CÀ THẺ: Company là OTA (Agoda/Expedia/Ctrip) HOẶC Notice chứa "TACC"
+        # (các OTA khác thanh toán qua tài khoản đại lý — Travel Agent account).
+        if any(comp_key.startswith(x) for x in CA_THE) or 'TACC' in _nu:
             labels.append('CÀ THẺ'); stats['ca_the'] += 1
         elif comp_key.startswith('booking'):
             labels.append('THU TIỀN'); stats['thu_tien'] += 1
         # THU TIỀN: khách tự trả khi/trước check-in — notice có "RC ... C/I".
-        # Loại trừ: "RC TA" (đại lý trả), "TACC" (đã Cà Thẻ), "GUEST PAID" (đã trả sẵn).
+        # Loại trừ: "RC TA" (đại lý trả), "TACC" (Cà Thẻ), "GUEST PAID" (đã trả sẵn).
         _thu_tien_notice = (
             'C/I' in _nu and 'RC' in _nu
             and not _re.search(r'RC\s+TA\b', _nu)
