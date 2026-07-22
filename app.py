@@ -791,27 +791,38 @@ def build_regcards(xlsx_bytes, only_main=True):
         df['_group_ff'] = pd.NA
     has_group = df['_group_ff'].notna()
     df_group = df[has_group].copy()
-    df_normal = df[~has_group].copy()
 
     writer = PdfWriter()
     count = 0
 
-    # 1) Regcard cho từng ĐOÀN (gộp theo mã Group)
-    if len(df_group):
-        grp_tmpl = load_group_template()
-        for _gid, gdf in df_group.groupby('_group_ff', sort=False):
-            page = build_group_regcard(gdf, grp_tmpl)
-            writer.add_page(page)
-            count += 1
+    tmpl_bytes = load_regcard_template()
+    grp_tmpl = None  # nạp lười khi gặp đoàn đầu tiên
+    _rendered_groups = set()  # tránh vẽ trùng 1 đoàn khi trải nhiều Conf#
 
-    # 2) Regcard thường cho các booking lẻ (gộp theo Conf#)
-    df = df_normal
-    groups = []
+    # Duyệt theo ĐÚNG THỨ TỰ xuất hiện trong file (gộp theo Conf#).
+    # Nhóm nào có mã Group → vẽ 1 trang Registration Card for Group (gộp cả đoàn);
+    # nhóm thường → regcard thường như cũ.
     for conf_val, grp in df.groupby('_conf_ff', sort=False):
         main_rows = grp[grp['Conf#'].notna()]
         if len(main_rows) == 0:
             continue
         main = main_rows.iloc[0]
+
+        # ── Nếu booking này thuộc ĐOÀN → dùng mẫu group ──
+        gid = grp['_group_ff'].dropna().iloc[0] if grp['_group_ff'].notna().any() else None
+        if gid is not None:
+            if gid in _rendered_groups:
+                continue  # đoàn đã vẽ ở lần gặp trước
+            _rendered_groups.add(gid)
+            if grp_tmpl is None:
+                grp_tmpl = load_group_template()
+            gdf = df_group[df_group['_group_ff'] == gid]
+            page = build_group_regcard(gdf, grp_tmpl)
+            writer.add_page(page)
+            count += 1
+            continue
+
+        # ── Booking thường → regcard thường ──
         rooms = []
         for r in grp['Rm']:
             if pd.notna(r):
@@ -827,10 +838,7 @@ def build_regcards(xlsx_bytes, only_main=True):
                     code = code.strip().upper()
                     if code:
                         spec_codes.add(code)
-        groups.append({'main': main, 'rooms': rooms, 'specials': spec_codes})
-
-    tmpl_bytes = load_regcard_template()
-    for g in groups:
+        g = {'main': main, 'rooms': rooms, 'specials': spec_codes}
         row = g['main']
         name = _rc_clean_name(row.get('Name'))
         if not name:
