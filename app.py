@@ -665,7 +665,7 @@ def _rc_conf(c):
 
 def _rc_date(d):
     if pd.isna(d): return ''
-    if hasattr(d,'strftime'):
+    if hasattr(d,'strftime') and not isinstance(d, str):
         return f"{d.day:02d}/{d.month:02d}/{d.year}"   # dd/mm/yyyy
     s=str(d).strip()
     if '/' in s:
@@ -673,7 +673,7 @@ def _rc_date(d):
         if len(p)==3:
             dd,mm,yy=p
             if len(yy)==2: yy='20'+yy
-            return f"{dd}/{mm}/{yy}"
+            return f"{int(dd):02d}/{int(mm):02d}/{yy}"   # pad 7/8 → 07/08
         return s
     try:
         t=pd.to_datetime(s)                            # ISO yyyy-mm-dd
@@ -773,7 +773,10 @@ def build_group_regcard(grp_df, tmpl_bytes):
 def build_regcards(xlsx_bytes, only_main=True):
     """Tạo PDF regcard hàng loạt, gộp theo Conf# (đoàn nhiều phòng → 1 regcard,
     các số phòng gộp chung vào ô Room No)."""
-    df = pd.read_excel(io.BytesIO(xlsx_bytes))
+    # Đọc Arrival/Departure dạng CHUỖI THÔ — tránh pandas hiểu "7/8/2026" (7 tháng 8,
+    # kiểu dd/mm) thành 8 tháng 7 (kiểu Mỹ mm/dd) → gây đảo ngày/tháng & sai số đêm.
+    df = pd.read_excel(io.BytesIO(xlsx_bytes),
+                       dtype={'Arrival': str, 'Departure': str})
     H = 841.0
     FONT = "Times-Roman"; SIZE = 9.8
     # Baseline chính xác (bottom) đo từ dữ liệu mẫu gốc — chữ trùng khít 100%
