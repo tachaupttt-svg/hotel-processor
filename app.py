@@ -770,10 +770,46 @@ def build_group_regcard(grp_df, tmpl_bytes):
     return page
 
 
+def _fix_date(v):
+    """Chuẩn hóa ngày về pd.Timestamp đúng nghĩa dd/mm.
+
+    File Smile export bị lỗi: ngày dạng dd/mm với ngày ≤ 12 (vd '7/8/2026' = 7 tháng 8)
+    bị Excel hiểu nhầm kiểu Mỹ mm/dd → lưu thành datetime(month=7, day=8) kèm format
+    mm-dd-yy. Khi đọc lại, cần HOÁN month↔day để khôi phục: datetime(y,7,8) → 7 tháng 8.
+    Ngày ≥ 13 thì Excel không nhầm được nên giữ dạng text dd/mm bình thường.
+    """
+    if v is None or (not isinstance(v, str) and pd.isna(v)):
+        return None
+    # datetime từ Excel → đã bị đảo month/day, khôi phục bằng cách hoán lại
+    if hasattr(v, 'year') and not isinstance(v, str):
+        try:
+            return pd.Timestamp(year=v.year, month=v.day, day=v.month)
+        except Exception:
+            return pd.Timestamp(v)   # day>12: không đảo được, giữ nguyên
+    # chuỗi
+    s = str(v).strip()
+    if '/' in s:
+        p = s.split('/')
+        if len(p) == 3:
+            dd, mm, yy = p
+            if len(yy) == 2: yy = '20' + yy
+            try:
+                return pd.Timestamp(year=int(yy), month=int(mm), day=int(dd))
+            except Exception:
+                return None
+    try:
+        return pd.to_datetime(s, dayfirst=True)
+    except Exception:
+        return None
+
 def build_regcards(xlsx_bytes, only_main=True):
     """Tạo PDF regcard hàng loạt, gộp theo Conf# (đoàn nhiều phòng → 1 regcard,
     các số phòng gộp chung vào ô Room No)."""
     df = pd.read_excel(io.BytesIO(xlsx_bytes))
+    # Chuẩn hóa ngày (sửa lỗi Excel đảo dd/mm↔mm/dd với ngày ≤12 từ Smile export)
+    for _dc in ('Arrival', 'Departure'):
+        if _dc in df.columns:
+            df[_dc] = df[_dc].map(_fix_date)
     H = 841.0
     FONT = "Times-Roman"; SIZE = 9.8
     # Baseline chính xác (bottom) đo từ dữ liệu mẫu gốc — chữ trùng khít 100%
