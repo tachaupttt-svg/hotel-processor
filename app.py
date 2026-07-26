@@ -773,10 +773,7 @@ def build_group_regcard(grp_df, tmpl_bytes):
 def build_regcards(xlsx_bytes, only_main=True):
     """Tạo PDF regcard hàng loạt, gộp theo Conf# (đoàn nhiều phòng → 1 regcard,
     các số phòng gộp chung vào ô Room No)."""
-    # Đọc Arrival/Departure dạng CHUỖI THÔ — tránh pandas hiểu "7/8/2026" (7 tháng 8,
-    # kiểu dd/mm) thành 8 tháng 7 (kiểu Mỹ mm/dd) → gây đảo ngày/tháng & sai số đêm.
-    df = pd.read_excel(io.BytesIO(xlsx_bytes),
-                       dtype={'Arrival': str, 'Departure': str})
+    df = pd.read_excel(io.BytesIO(xlsx_bytes))
     H = 841.0
     FONT = "Times-Roman"; SIZE = 9.8
     # Baseline chính xác (bottom) đo từ dữ liệu mẫu gốc — chữ trùng khít 100%
