@@ -666,24 +666,46 @@ def _rc_conf(c):
 def _rc_date(d):
     if pd.isna(d): return ''
     if hasattr(d,'strftime'):
-        return f"{d.month:02d}/{d.day:02d}/{d.year}"
-    s=str(d).strip(); p=s.split('/')
-    if len(p)==3:
-        dd,mm,yy=p
-        if len(yy)==2: yy='20'+yy
-        return f"{dd}/{mm}/{yy}"
-    return s
-
-def _rc_nights(arr,dep):
+        return f"{d.day:02d}/{d.month:02d}/{d.year}"   # dd/mm/yyyy
+    s=str(d).strip()
+    if '/' in s:
+        p=s.split('/')
+        if len(p)==3:
+            dd,mm,yy=p
+            if len(yy)==2: yy='20'+yy
+            return f"{dd}/{mm}/{yy}"
+        return s
     try:
-        if hasattr(arr,'strftime'):
-            a=pd.Timestamp(year=arr.year,month=arr.day,day=arr.month)
-        else:
-            p=str(arr).split('/'); a=pd.Timestamp(f"20{p[2]}-{p[1]}-{p[0]}")
-        p=str(dep).split('/')
-        d=pd.Timestamp(f"20{p[2]}-{p[1]}-{p[0]}") if len(p[2])==2 else pd.to_datetime(dep)
-        return str((d-a).days)
-    except: return ''
+        t=pd.to_datetime(s)                            # ISO yyyy-mm-dd
+        return f"{t.day:02d}/{t.month:02d}/{t.year}"
+    except Exception:
+        return s
+
+def _rc_nights(arr, dep):
+    """Số đêm = Departure - Arrival. Xử lý cả datetime lẫn chuỗi dd/mm/yyyy."""
+    def _to_ts(v):
+        if pd.isna(v): return None
+        if hasattr(v, 'year') and not isinstance(v, str):
+            return pd.Timestamp(v)          # datetime/Timestamp — giữ nguyên
+        s = str(v).strip()
+        if '/' in s:                        # chuỗi dd/mm/yyyy hoặc dd/mm/yy
+            p = s.split('/')
+            if len(p) == 3:
+                dd, mm, yy = p
+                if len(yy) == 2: yy = '20' + yy
+                try:
+                    return pd.Timestamp(year=int(yy), month=int(mm), day=int(dd))
+                except Exception:
+                    return None
+        try:
+            return pd.to_datetime(s)        # ISO yyyy-mm-dd hoặc dạng khác
+        except Exception:
+            return None
+    a, d = _to_ts(arr), _to_ts(dep)
+    if a is None or d is None:
+        return ''
+    n = (d - a).days
+    return str(n) if n >= 0 else ''
 
 def build_group_regcard(grp_df, tmpl_bytes):
     """Vẽ 1 Registration Card for Group từ các dòng cùng 1 mã Group.
