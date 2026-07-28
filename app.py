@@ -587,23 +587,25 @@ def build_kbtt(df_intl, visa_map=None):
     unmatched = []
     wb = load_workbook(io.BytesIO(load_template('kbtt')))
     ws = wb['KBTT']
-    ref = [ws.cell(4,c) for c in range(1,12)]
-    for r in range(ws.max_row,3,-1): ws.delete_rows(r)
+    # Mẫu mới: dòng 1 tiêu đề lớn, dòng 2 header, dòng 3 dòng mẫu (style), dữ liệu từ dòng 3.
+    ref = [ws.cell(3,c) for c in range(1,13)]   # 12 cột, style lấy từ dòng mẫu
+    for r in range(ws.max_row,2,-1): ws.delete_rows(r)  # xóa mọi dòng từ 3 trở đi
     for i,(_,row) in enumerate(df_intl.iterrows(),1):
-        er=i+3
+        er=i+2   # dữ liệu bắt đầu dòng 3
         ht=str(row.get('HỌ TÊN ',row.get('HỌ TÊN',''))).strip()
         ns=fmt(row['NGÀY SINH']); nd=fmt(row['NGÀY ĐẾN']); ni=fmt(row.get('NGÀY ÐI',row.get('NGÀY ĐI','')))
         gt='M - Nam' if str(row.get('GIỚI TÍNH','')).strip()=='Nam' else 'F - Nữ'
         qt=lookup_nat_kbtt(row.get('QUỐC TỊCH',''))
         sh=str(row.get('SỐ GIẤY TỜ','')).strip(); sp=str(row.get('SỐ PHÒNG','')).strip()
-        # Cột L (thời hạn tạm trú VN): ưu tiên visa date khớp theo tên, không có → để trống
+        # Cột L (12) — THỜI HẠN ĐƯỢC PHÉP TẠM TRÚ TẠI VIỆT NAM: date visa khớp theo tên
         if visa_map:
             vd = visa_map.get(_norm_name(ht), '')
             if not vd:
                 unmatched.append(ht)
         else:
-            vd = ni  # không dùng file visa → giữ hành vi cũ (ngày đi)
-        vals=[i,ht,ns,'D - Ngày',gt,qt,sh,sp,nd,ni,vd]
+            vd = ''   # không có file visa → cột L để trống
+        # 11 cột đầu GIỮ NGUYÊN như cũ, THÊM cột 12 (L) = date visa
+        vals=[i,ht,ns,'D - Ngày',gt,qt,sh,sp,nd,ni,ni,vd]
         for ci,val in enumerate(vals,1):
             cell=ws.cell(er,ci); cell.value=val if isinstance(val,int) else str(val)
             cp(ref[ci-1],cell)
