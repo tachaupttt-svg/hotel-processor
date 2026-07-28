@@ -520,7 +520,71 @@ def split_wb(wb, loai):
     for i, row in enumerate(ws2.iter_rows(min_row=2,max_row=ws2.max_row),1): row[0].value=i
     return wb2
 
-def build_kbtt(df_intl):
+def _norm_name(s):
+    """Chuẩn hóa tên để khớp giữa 2 file: bỏ dấu, hoa thường, gộp khoảng trắng."""
+    s = str(s).lower().strip()
+    s = _ud.normalize('NFD', s)
+    s = ''.join(c for c in s if _ud.category(c) != 'Mn')
+    return _re.sub(r'\s+', ' ', _re.sub(r'[^a-z0-9 ]', '', s)).strip()
+
+def parse_visa_file(visa_bytes):
+    """Đọc file thô visa (có Last Name, First Name, Visa date) → dict
+    {tên_chuẩn_hóa: 'dd/mm/yyyy'}. Khớp cả 'Last First' lẫn 'First Last'
+    để chắc ăn dù thứ tự tên trong file NNN khác."""
+    df = pd.read_excel(io.BytesIO(visa_bytes))
+    # Dò tên cột linh hoạt
+    def _find(*names):
+        for n in names:
+            for c in df.columns:
+                if _norm_nat(c) == _norm_nat(n):
+                    return c
+        return None
+    c_last = _find('Last Name', 'LastName', 'Họ')
+    c_first = _find('First Name', 'FirstName', 'Tên')
+    c_date = _find('Visa date', 'Visadate', 'Thời hạn tạm trú', 'Tam tru den')
+    if c_date is None:
+        raise ValueError("File visa không có cột 'Visa date'. Vui lòng kiểm tra lại file.")
+
+    vmap = {}
+    for _, r in df.iterrows():
+        d = r[c_date]
+        if pd.isna(d):
+            continue
+        # Cột Visa date đọc THẲNG (month=tháng thật, day=ngày thật) — KHÔNG đảo như
+        # cột Departure. Đã kiểm chứng: có ngày 25/26/31 nên day chính là ngày thật.
+        if hasattr(d, 'year') and not isinstance(d, str):
+            dstr = f"{d.day:02d}/{d.month:02d}/{d.year}"
+        else:
+            s = str(d).strip()
+            p = s.split('/')
+            if len(p) == 3:
+                dd, mm, yy = p
+                if len(yy) == 2: yy = '20' + yy
+                try:
+                    dstr = f"{int(dd):02d}/{int(mm):02d}/{yy}"
+                except Exception:
+                    continue
+            else:
+                try:
+                    t = pd.to_datetime(s, dayfirst=True)
+                    dstr = f"{t.day:02d}/{t.month:02d}/{t.year}"
+                except Exception:
+                    continue
+        ln = str(r[c_last]).strip() if c_last and pd.notna(r[c_last]) else ''
+        fn = str(r[c_first]).strip() if c_first and pd.notna(r[c_first]) else ''
+        # Lưu cả 2 thứ tự để khớp linh hoạt
+        for combo in ((ln + ' ' + fn), (fn + ' ' + ln)):
+            key = _norm_name(combo)
+            if key:
+                vmap.setdefault(key, dstr)
+    return vmap
+
+def build_kbtt(df_intl, visa_map=None):
+    """Điền mẫu KBTT. Nếu có visa_map {tên_chuẩn_hóa: 'dd/mm/yyyy'} thì điền
+    cột L 'THỜI HẠN ĐƯỢC PHÉP TẠM TRÚ TẠI VIỆT NAM' theo tên khớp; nếu không
+    khớp thì để trống cột đó. Trả về (wb, danh_sách_tên_không_khớp)."""
+    visa_map = visa_map or {}
+    unmatched = []
     wb = load_workbook(io.BytesIO(load_template('kbtt')))
     ws = wb['KBTT']
     ref = [ws.cell(4,c) for c in range(1,12)]
@@ -532,11 +596,18 @@ def build_kbtt(df_intl):
         gt='M - Nam' if str(row.get('GIỚI TÍNH','')).strip()=='Nam' else 'F - Nữ'
         qt=lookup_nat_kbtt(row.get('QUỐC TỊCH',''))
         sh=str(row.get('SỐ GIẤY TỜ','')).strip(); sp=str(row.get('SỐ PHÒNG','')).strip()
-        vals=[i,ht,ns,'D - Ngày',gt,qt,sh,sp,nd,ni,ni]
+        # Cột L (thời hạn tạm trú VN): ưu tiên visa date khớp theo tên, không có → để trống
+        if visa_map:
+            vd = visa_map.get(_norm_name(ht), '')
+            if not vd:
+                unmatched.append(ht)
+        else:
+            vd = ni  # không dùng file visa → giữ hành vi cũ (ngày đi)
+        vals=[i,ht,ns,'D - Ngày',gt,qt,sh,sp,nd,ni,vd]
         for ci,val in enumerate(vals,1):
             cell=ws.cell(er,ci); cell.value=val if isinstance(val,int) else str(val)
             cp(ref[ci-1],cell)
-    return wb
+    return wb, unmatched
 
 def build_vnm(df_vn):
     wb = load_workbook(io.BytesIO(load_template('vnm')))
@@ -1789,6 +1860,10 @@ if st.session_state.menu == "daily":
     with col_s:
         xls_file = st.file_uploader("File XLS — Nguồn ĐK14 (tùy chọn)", type=['xls'], key="daily_xls")
 
+    visa_file = st.file_uploader(
+        "File Visa — dữ liệu thô date visa (tùy chọn, để tự điền cột 'Thời hạn tạm trú tại VN' trong KBTT)",
+        type=['xlsx'], key="daily_visa")
+
     st.write("")
 
     if st.button("⚡ Bắt đầu xử lý", type="primary", disabled=(xlsx_file is None and xls_file is None), use_container_width=True):
@@ -1801,6 +1876,13 @@ if st.session_state.menu == "daily":
                 has_dk14 = False
                 conv = 0; gks_cnt = 0; gbl_cnt = 0
                 df = None; df_intl = None; df_vn = None
+                visa_map = {}; visa_unmatched = []
+                # Đọc file visa (nếu có) → map tên → date visa
+                if visa_file is not None:
+                    try:
+                        visa_map = parse_visa_file(visa_file.read())
+                    except Exception as _ve:
+                        st.warning(f"⚠️ Không đọc được file visa: {_ve}")
 
                 with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
                     # ── Xử lý file XLSX (nếu có) ──
@@ -1817,7 +1899,7 @@ if st.session_state.menu == "daily":
                         wb_vn   = split_wb(wb, 'Việt Nam')
 
                         progress.progress(45, text="Điền mẫu KBTT...")
-                        wb_kbtt = build_kbtt(df_intl)
+                        wb_kbtt, visa_unmatched = build_kbtt(df_intl, visa_map=visa_map)
 
                         progress.progress(60, text="Điền mẫu Thông báo lưu trú VNM...")
                         wb_vnm, gks_cnt, gbl_cnt = build_vnm(df_vn)
@@ -1853,7 +1935,10 @@ if st.session_state.menu == "daily":
                             unknown_nats.append(str(q))
                     _daily.update({'total': len(df), 'intl': len(df_intl), 'vn': len(df_vn),
                                    'gks': gks_cnt, 'gbl': gbl_cnt, 'conv': conv,
-                                   'unknown_nats': unknown_nats})
+                                   'unknown_nats': unknown_nats,
+                                   'visa_used': bool(visa_map),
+                                   'visa_matched': len(df_intl) - len(visa_unmatched) if visa_map else 0,
+                                   'visa_unmatched': visa_unmatched})
                 st.session_state['daily_results'] = _daily
             except Exception as e:
                 st.session_state.pop('daily_results', None)
@@ -1872,6 +1957,11 @@ if st.session_state.menu == "daily":
             st.info(f"💱 Đã quy đổi tỷ giá cho **{_dr['conv']}** ô (đã tô vàng)")
             if _dr['unknown_nats']:
                 st.warning("⚠️ Quốc tịch chưa có mã (giữ nguyên tên, cần kiểm tra): " + ", ".join(_dr['unknown_nats']))
+            if _dr.get('visa_used'):
+                st.info(f"🛂 Đã điền date visa cho **{_dr['visa_matched']}/{_dr['intl']}** khách quốc tế (khớp theo tên).")
+                if _dr.get('visa_unmatched'):
+                    st.warning("⚠️ Không tìm thấy date visa cho (cột tạm trú để trống): "
+                               + ", ".join(_dr['visa_unmatched']))
         elif _dr['has_dk14']:
             st.info("ℹ️ Chỉ tạo file ĐK14 (không có file XLSX dữ liệu khách).")
 
