@@ -587,9 +587,14 @@ def build_kbtt(df_intl, visa_map=None):
     unmatched = []
     wb = load_workbook(io.BytesIO(load_template('kbtt')))
     ws = wb['KBTT']
-    # Mẫu mới: dòng 1 tiêu đề lớn, dòng 2 header, dòng 3 dòng mẫu (style), dữ liệu từ dòng 3.
-    ref = [ws.cell(3,c) for c in range(1,13)]   # 12 cột, style lấy từ dòng mẫu
-    for r in range(ws.max_row,2,-1): ws.delete_rows(r)  # xóa mọi dòng từ 3 trở đi
+    # Cấu trúc mẫu: dòng 1 = ô merge A1:L1 (tiêu đề + chú ý đỏ), dòng 2 = header,
+    # dữ liệu từ dòng 3. GIỮ NGUYÊN dòng 1, 2 và merge/chiều cao — chỉ ghi dữ liệu.
+    ref = [ws.cell(3,c) for c in range(1,13)]   # style mẫu dòng 3 (12 cột, định dạng bảng)
+    n = len(df_intl)
+    # Xóa dòng dữ liệu thừa (nếu có), luôn giữ tối thiểu tới dòng 3
+    last_data_row = 2 + max(n, 1)
+    if ws.max_row > last_data_row:
+        ws.delete_rows(last_data_row + 1, ws.max_row - last_data_row)
     for i,(_,row) in enumerate(df_intl.iterrows(),1):
         er=i+2   # dữ liệu bắt đầu dòng 3
         ht=str(row.get('HỌ TÊN ',row.get('HỌ TÊN',''))).strip()
@@ -604,11 +609,20 @@ def build_kbtt(df_intl, visa_map=None):
                 unmatched.append(ht)
         else:
             vd = ''   # không có file visa → cột L để trống
-        # 11 cột đầu GIỮ NGUYÊN như cũ, THÊM cột 12 (L) = date visa
         vals=[i,ht,ns,'D - Ngày',gt,qt,sh,sp,nd,ni,ni,vd]
         for ci,val in enumerate(vals,1):
             cell=ws.cell(er,ci); cell.value=val if isinstance(val,int) else str(val)
             cp(ref[ci-1],cell)
+    if n == 0:
+        for c in range(1,13): ws.cell(3,c).value = None
+    # Bảo toàn ô merge tiêu đề + chiều cao dòng 1 (phòng khi delete_rows làm xê dịch)
+    if 'A1:L1' not in [str(m) for m in ws.merged_cells.ranges]:
+        try: ws.merge_cells('A1:L1')
+        except Exception: pass
+    ws.row_dimensions[1].height = 41.1
+    # Cập nhật vùng Table1 cho khớp số dòng thực (giữ định dạng bảng, header, filter)
+    if 'Table1' in ws.tables:
+        ws.tables['Table1'].ref = f"A2:L{2 + max(n,1)}"
     return wb, unmatched
 
 def build_vnm(df_vn):
