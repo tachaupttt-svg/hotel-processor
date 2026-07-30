@@ -620,6 +620,22 @@ def build_kbtt(df_intl, visa_map=None):
         try: ws.merge_cells('A1:L1')
         except Exception: pass
     ws.row_dimensions[1].height = 41.1
+    # Khôi phục rich text ô A1: tiêu đề (đen) + dòng chú ý (ĐỎ) — openpyxl làm mất khi save
+    try:
+        from openpyxl.cell.rich_text import CellRichText, TextBlock
+        from openpyxl.cell.text import InlineFont
+        from openpyxl.styles.colors import Color
+        from openpyxl.styles import Alignment
+        a1 = ws.cell(1,1)
+        a1.value = CellRichText(
+            TextBlock(InlineFont(rFont='Times New Roman', sz=16, b=True),
+                      'DANH SÁCH HỒ SƠ KBTT\r\n'),
+            TextBlock(InlineFont(rFont='Times New Roman', sz=16, b=True, color=Color(rgb='FFFF0000')),
+                      '(*Lưu ý: Người khai báo chịu trách nhiệm trước pháp luật về các nội dung thông tin cung cấp)')
+        )
+        a1.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    except Exception:
+        pass
     # Cập nhật vùng Table1 cho khớp số dòng thực (giữ định dạng bảng, header, filter)
     if 'Table1' in ws.tables:
         ws.tables['Table1'].ref = f"A2:L{2 + max(n,1)}"
