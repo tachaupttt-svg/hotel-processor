@@ -1150,7 +1150,13 @@ def reconcile(smile_bytes, luutru_bytes, today):
     df2 = pd.read_excel(io.BytesIO(luutru_bytes), header=9)
     df2 = df2.dropna(subset=['Họ tên'])
     df2['pp'] = df2['Số hộ chiếu'].apply(_norm_pp)
-    df2['ddk'] = pd.to_datetime(df2['Ngày đi dự kiến'], format='%d/%m/%Y', errors='coerce')
+    # Cột ngày đi dự kiến: file mới đổi tên thành "Thời gian dự kiến tạm trú tại CSLT".
+    # Dò linh hoạt để chạy được cả file mẫu mới lẫn cũ.
+    _ddk_col = next((c for c in df2.columns
+                     if 'dự kiến' in str(c).lower() and 'tạm trú' in str(c).lower()), None)
+    if _ddk_col is None:
+        _ddk_col = next((c for c in df2.columns if 'đi dự kiến' in str(c).lower()), None)
+    df2['ddk'] = pd.to_datetime(df2[_ddk_col], format='%d/%m/%Y', errors='coerce') if _ddk_col else pd.NaT
     df2['room'] = df2['Số phòng'].apply(_norm_room)
     # Lọc: bỏ ngày đi dự kiến = hôm nay
     luutru_f = df2[df2['ddk'].dt.date != today.date()].copy()
