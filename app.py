@@ -2144,6 +2144,19 @@ if st.session_state.menu == "recon":
         st.button("Mở  →", key="btn_recon_room", use_container_width=True,
                   on_click=go_menu, args=("recon_room",))
 
+    st.write("")
+    ccol1, ccol2 = st.columns(2)
+    with ccol1:
+        st.markdown("""
+        <div class="menu-card menu-amber">
+            <div class="menu-icon">🔢</div>
+            <div class="menu-title">Bộ đếm khách & phòng</div>
+            <div class="menu-desc">Đếm số khách và số phòng (nước ngoài / Việt Nam) cho từng file ARR · DEP · INHOUSE</div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.button("Mở  →", key="btn_counter", use_container_width=True,
+                  on_click=go_menu, args=("counter",))
+
 # ── Kiểm tra lưu trú người nước ngoài ─────────────────────────────────────
 if st.session_state.menu == "recon_person":
     st.button("←  Quay lại", key="back_recon_person", on_click=go_menu, args=("recon",))
@@ -2214,6 +2227,60 @@ if st.session_state.menu == "recon_person":
             st.dataframe(r['dup'], use_container_width=True, hide_index=True)
 
 # ── Kiểm tra hệ thống quản lý lưu trú phòng ────────────────────────────────
+_HO_VN = {'nguyen','tran','le','pham','hoang','huynh','phan','vu','vo','dang','bui','do',
+    'ho','ngo','duong','ly','dao','dinh','trinh','doan','luong','mai','truong','ta',
+    'lam','vuong','chu','cao','quach','ha','thai','luu','ton','au','ong','ninh',
+    'be','phung','ban','bach','chau','chung','co','giang','kieu','la','lai','lieu',
+    'luc','ma','nghiem','pho','quan','thach','ung','van','xa','to','tu','uong','trieu'}
+
+def _is_vn_name(name):
+    """Đoán tên Việt Nam theo họ (dùng khi file không có cột quốc tịch, vd ARR)."""
+    n = str(name).strip().lower()
+    n = _ud.normalize('NFD', n)
+    n = ''.join(c for c in n if _ud.category(c) != 'Mn')
+    w = n.replace(',', ' ').split()
+    return bool(w) and w[0] in _HO_VN
+
+def count_guests_rooms(file_bytes):
+    """Đếm khách & phòng NN/VN trong 1 file Smile.
+    - Có cột NAT → phân loại theo NAT (VNM = VN, còn lại = NN).
+    - Không có NAT (vd file ARR) → đoán theo tên.
+    Loại phòng ảo 9xxx. Phòng có cả NN lẫn VN → đếm vào cả hai + đếm số phòng hỗn hợp.
+    """
+    df = pd.read_excel(io.BytesIO(file_bytes), header=0)
+    df = df[df['Name'].notna()].copy() if 'Name' in df.columns else df
+    has_nat = 'NAT' in df.columns and df['NAT'].notna().any()
+
+    def _is_vn(row):
+        if has_nat and pd.notna(row.get('NAT')):
+            return _norm_nat(row['NAT']) == 'vnm'
+        return _is_vn_name(row.get('Name', ''))
+
+    guests_vn = guests_nn = 0
+    room_nat = {}   # room → set{'VN','NN'}
+    rm_col = 'Rm' if 'Rm' in df.columns else ('Rm#' if 'Rm#' in df.columns else None)
+    for _, row in df.iterrows():
+        vn = _is_vn(row)
+        if vn: guests_vn += 1
+        else:  guests_nn += 1
+        if rm_col:
+            rs = str(row.get(rm_col, '')).strip()
+            if rs.endswith('.0'): rs = rs[:-2]
+            rs = rs.upper()
+            if rs and not _re.fullmatch(r'9\d{3}', rs):   # loại phòng ảo
+                room_nat.setdefault(rs, set()).add('VN' if vn else 'NN')
+
+    rooms_vn = sum(1 for s in room_nat.values() if 'VN' in s)
+    rooms_nn = sum(1 for s in room_nat.values() if 'NN' in s)
+    rooms_mixed = sum(1 for s in room_nat.values() if len(s) == 2)
+    return {
+        'guests_vn': guests_vn, 'guests_nn': guests_nn,
+        'guests_total': guests_vn + guests_nn,
+        'rooms_vn': rooms_vn, 'rooms_nn': rooms_nn,
+        'rooms_total': len(room_nat), 'rooms_mixed': rooms_mixed,
+        'by_name': not has_nat,   # True nếu phải đoán theo tên
+    }
+
 def reconcile_rooms(smile_bytes, room_bytes, today):
     """Đối chiếu phòng inhouse từ file khách lưu trú Smile (trừ khách Arrival hôm nay)
     với file Excel chỉ chứa danh sách số phòng."""
@@ -2368,3 +2435,58 @@ if st.session_state.menu == "recon_room":
                        + ", ".join(rr['sys_dup']))
 
 
+
+# ── Bộ đếm khách & phòng (ARR / DEP / INHOUSE) ────────────────────────────
+if st.session_state.menu == "counter":
+    st.button("←  Quay lại", key="back_counter", on_click=go_menu, args=("recon",))
+    st.write("")
+    st.markdown('<div class="section-label">🔢 Bộ đếm khách & phòng</div>', unsafe_allow_html=True)
+    st.caption("Tải lên từng file (ARR / DEP / INHOUSE) xuất từ Smile. Mỗi file đếm riêng: "
+               "số khách và số phòng nước ngoài / Việt Nam. File không có cột quốc tịch (ARR) "
+               "sẽ tự động đoán theo tên.")
+    st.write("")
+
+    _labels = [("ARR", "File ARR — khách đến trong ngày"),
+               ("DEP", "File DEP — khách đi trong ngày"),
+               ("INHOUSE", "File INHOUSE — khách đang ở")]
+    ccols = st.columns(3)
+    _files = {}
+    for (key, label), col in zip(_labels, ccols):
+        with col:
+            _files[key] = st.file_uploader(label, type=['xlsx', 'xls'], key=f"cnt_{key}")
+
+    if st.button("🔢 Bắt đầu đếm", type="primary", use_container_width=True,
+                 disabled=all(v is None for v in _files.values())):
+        results = {}
+        for key, f in _files.items():
+            if f is not None:
+                try:
+                    results[key] = count_guests_rooms(f.read())
+                except Exception as e:
+                    results[key] = {'error': str(e)}
+        st.session_state['counter_results'] = results
+
+    _cr = st.session_state.get('counter_results')
+    if _cr:
+        st.success("✅ Đã đếm xong!")
+        for key, label in _labels:
+            r = _cr.get(key)
+            if not r:
+                continue
+            st.divider()
+            if 'error' in r:
+                st.error(f"❌ {key}: {r['error']}")
+                continue
+            _tag = " (đếm theo tên)" if r.get('by_name') else ""
+            st.markdown(f"### {key}{_tag}")
+            m1, m2, m3 = st.columns(3)
+            m1.metric("👤 Tổng khách", r['guests_total'])
+            m2.metric("🌏 Khách nước ngoài", r['guests_nn'])
+            m3.metric("🇻🇳 Khách Việt Nam", r['guests_vn'])
+            p1, p2, p3 = st.columns(3)
+            p1.metric("🚪 Tổng phòng", r['rooms_total'])
+            p2.metric("🌏 Phòng nước ngoài", r['rooms_nn'])
+            p3.metric("🇻🇳 Phòng Việt Nam", r['rooms_vn'])
+            if r['rooms_mixed'] > 0:
+                st.info(f"ℹ️ Có **{r['rooms_mixed']}** phòng hỗn hợp (vừa có khách nước ngoài "
+                        f"vừa có khách Việt Nam) — được tính vào cả hai loại phòng.")
