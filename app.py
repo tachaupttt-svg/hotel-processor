@@ -459,6 +459,56 @@ def wb_to_bytes(wb):
     buf = io.BytesIO(); wb.save(buf); return buf.getvalue()
 
 # ── Processing ────────────────────────────────────────────────────────────
+def split_converted_by_room(wb, limit=200, room_col=15):
+    """Tách workbook converted thành nhiều workbook con, mỗi cái ≤ limit khách,
+    KHÔNG chia đôi một phòng (cắt ở ranh giới phòng gần dòng limit nhất, lùi về trước).
+    Giữ nguyên định dạng + đánh lại STT. Trả về list workbook con.
+    room_col: chỉ số cột SỐ PHÒNG (mặc định 15 = cột O)."""
+    import copy as _copy
+    ws = wb['customer'] if 'customer' in wb.sheetnames else wb.active
+    # Số phòng theo từng dòng dữ liệu (từ dòng 2)
+    data_rows = list(range(2, ws.max_row + 1))
+    rooms = [str(ws.cell(r, room_col).value).strip() if ws.cell(r, room_col).value is not None else ''
+             for r in data_rows]
+    n = len(rooms)
+    if n <= limit:
+        return [wb]   # không cần tách
+
+    # Tính các đoạn cắt
+    parts = []; start = 0
+    while start < n:
+        ideal = min(start + limit, n)
+        if ideal == n:
+            parts.append((start, n)); break
+        end = ideal
+        while end > start and rooms[end-1] == rooms[end]:
+            end -= 1
+        if end == start:                       # cả block > limit cùng 1 phòng (hiếm)
+            end = ideal
+            while end < n and rooms[end] == rooms[end-1]:
+                end += 1
+        parts.append((start, end)); start = end
+
+    # Tạo workbook con cho mỗi đoạn
+    src_bytes = wb_to_bytes(wb)
+    result = []
+    for pi, (s, e) in enumerate(parts):
+        sub = load_workbook(io.BytesIO(src_bytes))
+        sws = sub['customer'] if 'customer' in sub.sheetnames else sub.active
+        # Xóa các dòng NGOÀI đoạn [s, e). data row thực = 2 + index
+        keep_first = 2 + s          # dòng đầu giữ
+        keep_last = 2 + e - 1       # dòng cuối giữ
+        # Xóa từ dưới lên: bỏ dòng sau keep_last, rồi bỏ dòng trước keep_first (giữ header dòng 1)
+        if sws.max_row > keep_last:
+            sws.delete_rows(keep_last + 1, sws.max_row - keep_last)
+        if keep_first > 2:
+            sws.delete_rows(2, keep_first - 2)
+        # Đánh lại STT (cột 1) từ 1
+        for i, r in enumerate(range(2, 2 + (e - s)), 1):
+            sws.cell(r, 1).value = i
+        result.append(sub)
+    return result
+
 def process_xlsx(xlsx_bytes, rate):
     """Điền dữ liệu file đầu vào lên FILE MẪU customer (QLLT) — giữ nguyên 100%
     template: sheet 'customer' + sheet 'Danh-muc', định dạng header, style ô dữ liệu.
@@ -1945,12 +1995,21 @@ if st.session_state.menu == "daily":
                         progress.progress(60, text="Điền mẫu Thông báo lưu trú VNM...")
                         wb_vnm, gks_cnt, gbl_cnt = build_vnm(df_vn)
 
-                        zf.writestr(f'converted_{date_str}.xlsx',      wb_to_bytes(wb))
+                        # File converted: tách làm nhiều phần nếu >200 khách,
+                        # cắt ở ranh giới phòng (không chia đôi 1 phòng).
+                        conv_parts = split_converted_by_room(wb, limit=200)
+                        if len(conv_parts) == 1:
+                            zf.writestr(f'converted_{date_str}.xlsx', wb_to_bytes(conv_parts[0]))
+                        else:
+                            for pi, sub in enumerate(conv_parts, 1):
+                                zf.writestr(f'converted_{date_str}_phan{pi}.xlsx', wb_to_bytes(sub))
                         zf.writestr(f'KhachQuocTe_{date_str}.xlsx',    wb_to_bytes(wb_intl))
                         zf.writestr(f'KhachVietNam_{date_str}.xlsx',   wb_to_bytes(wb_vn))
                         zf.writestr(f'ho_so_KBTT_NNN_{date_str}.xlsx', wb_to_bytes(wb_kbtt))
                         zf.writestr(f'thong_bao_luu_tru_VNM_{date_str}.xlsx', wb_to_bytes(wb_vnm))
-                        files_made += ["📄 converted (file chung)", "🌍 KhachQuocTe", "🇻🇳 KhachVietNam",
+                        _conv_label = ("📄 converted (file chung)" if len(conv_parts) == 1
+                                       else f"📄 converted ({len(conv_parts)} phần, tách theo phòng ≤200)")
+                        files_made += [_conv_label, "🌍 KhachQuocTe", "🇻🇳 KhachVietNam",
                                        "📝 KBTT NNN", "📑 Thông báo lưu trú VNM"]
 
                     # ── Xử lý file ĐK14 (độc lập, chỉ cần file XLS) ──
