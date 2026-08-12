@@ -588,15 +588,19 @@ def build_kbtt(df_intl, visa_map=None):
     wb = load_workbook(io.BytesIO(load_template('kbtt')))
     ws = wb['KBTT']
     # Cấu trúc mẫu: dòng 1 = ô merge A1:L1 (tiêu đề + chú ý đỏ), dòng 2 = header,
-    # dữ liệu từ dòng 3. GIỮ NGUYÊN dòng 1, 2 và merge/chiều cao — chỉ ghi dữ liệu.
-    ref = [ws.cell(3,c) for c in range(1,13)]   # style mẫu dòng 3 (12 cột, định dạng bảng)
+    # dòng 3 = dòng mẫu [TEST] SAMPLE (GIỮ LẠI làm mẫu để đẩy lên trang QL đủ),
+    # dữ liệu THẬT ghi từ dòng 4. Style copy từ dòng 3.
+    ref = [ws.cell(3,c) for c in range(1,13)]
     n = len(df_intl)
-    # Xóa dòng dữ liệu thừa (nếu có), luôn giữ tối thiểu tới dòng 3
-    last_data_row = 2 + max(n, 1)
+    # Xóa dữ liệu thừa dưới dòng cần dùng (giữ dòng 1,2,3 + n dòng dữ liệu = tới dòng 3+n)
+    last_data_row = 3 + n
     if ws.max_row > last_data_row:
         ws.delete_rows(last_data_row + 1, ws.max_row - last_data_row)
+    # Chèn thêm dòng cho dữ liệu thật (ngay dưới dòng mẫu 3) nếu cần
+    if n > 0 and ws.max_row < last_data_row:
+        ws.insert_rows(4, last_data_row - ws.max_row)
     for i,(_,row) in enumerate(df_intl.iterrows(),1):
-        er=i+2   # dữ liệu bắt đầu dòng 3
+        er=i+3   # dữ liệu THẬT bắt đầu dòng 4 (giữ dòng 3 = [TEST] SAMPLE)
         ht=str(row.get('HỌ TÊN ',row.get('HỌ TÊN',''))).strip()
         ns=fmt(row['NGÀY SINH']); nd=fmt(row['NGÀY ĐẾN']); ni=fmt(row.get('NGÀY ÐI',row.get('NGÀY ĐI','')))
         gt='M - Nam' if str(row.get('GIỚI TÍNH','')).strip()=='Nam' else 'F - Nữ'
@@ -613,8 +617,7 @@ def build_kbtt(df_intl, visa_map=None):
         for ci,val in enumerate(vals,1):
             cell=ws.cell(er,ci); cell.value=val if isinstance(val,int) else str(val)
             cp(ref[ci-1],cell)
-    if n == 0:
-        for c in range(1,13): ws.cell(3,c).value = None
+    # (Giữ nguyên dòng 3 [TEST] SAMPLE làm mẫu — KHÔNG xóa dù n=0)
     # Bảo toàn ô merge tiêu đề + chiều cao dòng 1 (phòng khi delete_rows làm xê dịch)
     if 'A1:L1' not in [str(m) for m in ws.merged_cells.ranges]:
         try: ws.merge_cells('A1:L1')
@@ -636,9 +639,9 @@ def build_kbtt(df_intl, visa_map=None):
         a1.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
     except Exception:
         pass
-    # Cập nhật vùng Table1 cho khớp số dòng thực (giữ định dạng bảng, header, filter)
+    # Cập nhật vùng Table1: header dòng 2 → hết dữ liệu (dòng 3 mẫu + n dòng thật)
     if 'Table1' in ws.tables:
-        ws.tables['Table1'].ref = f"A2:L{2 + max(n,1)}"
+        ws.tables['Table1'].ref = f"A2:L{3 + n}"
     return wb, unmatched
 
 def build_vnm(df_vn):
