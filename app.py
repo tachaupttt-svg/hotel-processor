@@ -2075,6 +2075,8 @@ if st.session_state.menu == "daily":
             use_container_width=True,
             type="primary"
         )
+        st.write("")
+        st.button("←  Quay lại menu", key="back_daily_bottom", on_click=go_menu, args=(None,))
 
 # ── Regcard screen ────────────────────────────────────────────────────────
 if st.session_state.menu == "regcard":
@@ -2151,6 +2153,8 @@ if st.session_state.menu == "regcard":
                         use_container_width=True, type="primary", key="dl_rc_arr")
             if _res['arr_err']:
                 st.warning(f"⚠️ Không tạo được file ARR: {_res['arr_err']}")
+        st.write("")
+        st.button("←  Quay lại menu", key="back_regcard_bottom", on_click=go_menu, args=(None,))
 
 
 # ── Đối chiếu: sub-menu 2 lựa chọn (có cổng mật khẩu riêng) ────────────────
@@ -2287,6 +2291,9 @@ if st.session_state.menu == "recon_person":
         if n_dup > 0:
             st.warning(f"🟠 {n_dup} dòng ĐĂNG KÝ TRÙNG trên lưu trú:")
             st.dataframe(r['dup'], use_container_width=True, hide_index=True)
+
+        st.write("")
+        st.button("←  Quay lại", key="back_recon_person_bottom", on_click=go_menu, args=("recon",))
 
 # ── Kiểm tra hệ thống quản lý lưu trú phòng ────────────────────────────────
 _HO_VN = {'nguyen','tran','le','pham','hoang','huynh','phan','vu','vo','dang','bui','do',
@@ -2496,6 +2503,8 @@ if st.session_state.menu == "recon_room":
             st.warning(f"🟠 {n_dup} phòng bị TRÙNG (xuất hiện nhiều lần) trong file số phòng: "
                        + ", ".join(rr['sys_dup']))
 
+        st.write("")
+        st.button("←  Quay lại", key="back_recon_room_bottom", on_click=go_menu, args=("recon",))
 
 
 # ── Bộ đếm khách & phòng (ARR / DEP / INHOUSE) ────────────────────────────
@@ -2552,3 +2561,5 @@ if st.session_state.menu == "counter":
             if r['rooms_mixed'] > 0:
                 st.info(f"ℹ️ Có **{r['rooms_mixed']}** phòng hỗn hợp (vừa có khách nước ngoài "
                         f"vừa có khách Việt Nam) — được tính vào cả hai loại phòng.")
+        st.write("")
+        st.button("←  Quay lại", key="back_counter_bottom", on_click=go_menu, args=("recon",))
