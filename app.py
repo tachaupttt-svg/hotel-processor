@@ -2350,6 +2350,60 @@ def count_guests_rooms(file_bytes):
         'by_name': not has_nat,   # True nếu phải đoán theo tên
     }
 
+def count_guests_rooms_dk14(file_bytes):
+    """Đếm khách & phòng NN/VN từ file Sổ quản lý ĐK14 (Mẫu ĐK14, Thông tư 30/2026/TT-BCA)
+    — tự động dò dòng tiêu đề 'Họ và tên khách lưu trú' / 'Quốc tịch', phân loại theo cột
+    Quốc tịch (Vietnam/Việt Nam = VN, còn lại = NN). Loại phòng ảo 9xxx. Phòng có cả NN lẫn
+    VN → đếm vào cả hai + đếm số phòng hỗn hợp.
+    """
+    raw = pd.read_excel(io.BytesIO(file_bytes), header=None)
+    header_row = None
+    for i in range(min(30, len(raw))):
+        vals = {_norm_nat(v) for v in raw.iloc[i].tolist() if pd.notna(v)}
+        if any('hovatenkhach' in v for v in vals) and any(v.startswith('quoctich') for v in vals):
+            header_row = i
+            break
+    if header_row is None:
+        raise ValueError("Không tìm thấy dòng tiêu đề 'Họ và tên khách lưu trú' / 'Quốc tịch' — "
+                          "file không đúng mẫu ĐK14.")
+
+    df = pd.read_excel(io.BytesIO(file_bytes), header=header_row)
+    df.columns = [str(c).strip() for c in df.columns]
+    name_col = next(c for c in df.columns if 'hovatenkhach' in _norm_nat(c))
+    nat_col = next(c for c in df.columns if _norm_nat(c).startswith('quoctich'))
+    room_col = next(c for c in df.columns if 'sobuong' in _norm_nat(c) or 'sophong' in _norm_nat(c))
+    stt_col = next((c for c in df.columns if _norm_nat(c) == 'stt'), None)
+
+    if stt_col:
+        df = df[pd.to_numeric(df[stt_col], errors='coerce').notna()]
+    df = df[df[name_col].notna()].copy()
+
+    def _is_vn(nat):
+        n = _norm_nat(nat)
+        return n.startswith('vietnam') or n in ('vnm', 'vn')
+
+    guests_vn = guests_nn = 0
+    room_nat = {}   # room → set{'VN','NN'}
+    for _, row in df.iterrows():
+        vn = _is_vn(row.get(nat_col, ''))
+        if vn: guests_vn += 1
+        else:  guests_nn += 1
+        rs = str(row.get(room_col, '')).strip()
+        if rs.endswith('.0'): rs = rs[:-2]
+        rs = rs.upper()
+        if rs and rs.lower() != 'nan' and not _re.fullmatch(r'9\d{3}', rs):   # loại phòng ảo
+            room_nat.setdefault(rs, set()).add('VN' if vn else 'NN')
+
+    rooms_vn = sum(1 for s in room_nat.values() if 'VN' in s)
+    rooms_nn = sum(1 for s in room_nat.values() if 'NN' in s)
+    rooms_mixed = sum(1 for s in room_nat.values() if len(s) == 2)
+    return {
+        'guests_vn': guests_vn, 'guests_nn': guests_nn,
+        'guests_total': guests_vn + guests_nn,
+        'rooms_vn': rooms_vn, 'rooms_nn': rooms_nn,
+        'rooms_total': len(room_nat), 'rooms_mixed': rooms_mixed,
+    }
+
 def reconcile_rooms(smile_bytes, room_bytes, today):
     """Đối chiếu phòng inhouse từ file khách lưu trú Smile (trừ khách Arrival hôm nay)
     với file Excel chỉ chứa danh sách số phòng."""
@@ -2512,15 +2566,16 @@ if st.session_state.menu == "counter":
     st.button("←  Quay lại", key="back_counter", on_click=go_menu, args=("recon",))
     st.write("")
     st.markdown('<div class="section-label">🔢 Bộ đếm khách & phòng</div>', unsafe_allow_html=True)
-    st.caption("Tải lên từng file (ARR / DEP / INHOUSE) xuất từ Smile. Mỗi file đếm riêng: "
-               "số khách và số phòng nước ngoài / Việt Nam. File không có cột quốc tịch (ARR) "
-               "sẽ tự động đoán theo tên.")
+    st.caption("Tải lên từng file (ARR / DEP / INHOUSE xuất từ Smile, hoặc ĐK14 — Sổ quản lý lưu trú "
+               "nộp công an). Mỗi file đếm riêng: số khách và số phòng nước ngoài / Việt Nam. "
+               "File không có cột quốc tịch (ARR) sẽ tự động đoán theo tên.")
     st.write("")
 
     _labels = [("ARR", "File ARR — khách đến trong ngày"),
                ("DEP", "File DEP — khách đi trong ngày"),
-               ("INHOUSE", "File INHOUSE — khách đang ở")]
-    ccols = st.columns(3)
+               ("INHOUSE", "File INHOUSE — khách đang ở"),
+               ("DK14", "File ĐK14 — Sổ quản lý lưu trú")]
+    ccols = st.columns(4)
     _files = {}
     for (key, label), col in zip(_labels, ccols):
         with col:
@@ -2532,7 +2587,8 @@ if st.session_state.menu == "counter":
         for key, f in _files.items():
             if f is not None:
                 try:
-                    results[key] = count_guests_rooms(f.read())
+                    fn = count_guests_rooms_dk14 if key == "DK14" else count_guests_rooms
+                    results[key] = fn(f.read())
                 except Exception as e:
                     results[key] = {'error': str(e)}
         st.session_state['counter_results'] = results
