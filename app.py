@@ -1334,7 +1334,22 @@ st.markdown("""
         background: rgba(255,255,255,0.85);
         backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
         transition: all 0.18s ease; min-height: 150px;
+        height: 100%; box-sizing: border-box;
         animation: fadeIn 0.5s ease 0.15s both;
+    }
+    /* Các thẻ menu trong cùng 1 hàng cao bằng nhau, bất kể tiêu đề dài ngắn khác nhau */
+    div[data-testid="stHorizontalBlock"]:has(.menu-card) {align-items: stretch;}
+    div[data-testid="stColumn"]:has(.menu-card) {display: flex; flex-direction: column;}
+    div[data-testid="stColumn"]:has(.menu-card) > div[data-testid="stVerticalBlock"] {
+        flex: 1; display: flex; flex-direction: column;
+    }
+    div[data-testid="stVerticalBlock"] > div[data-testid="stElementContainer"]:has(.menu-card) {
+        flex: 1; display: flex; flex-direction: column;
+    }
+    div[data-testid="stElementContainer"]:has(.menu-card) [data-testid="stMarkdown"],
+    div[data-testid="stElementContainer"]:has(.menu-card) [data-testid="stMarkdown"] > div,
+    div[data-testid="stElementContainer"]:has(.menu-card) [data-testid="stMarkdownContainer"] {
+        flex: 1; display: flex; flex-direction: column; height: 100%;
     }
     .menu-card:hover {
         background: rgba(255,255,255,0.95);
@@ -2188,7 +2203,7 @@ if st.session_state.menu == "recon":
 
     st.markdown('<div class="section-label">🔍 Chọn loại kiểm tra</div>', unsafe_allow_html=True)
     st.write("")
-    scol1, scol2 = st.columns(2)
+    scol1, scol2, scol3 = st.columns(3)
     with scol1:
         st.markdown("""
         <div class="menu-card menu-amber">
@@ -2209,15 +2224,12 @@ if st.session_state.menu == "recon":
         """, unsafe_allow_html=True)
         st.button("Mở  →", key="btn_recon_room", use_container_width=True,
                   on_click=go_menu, args=("recon_room",))
-
-    st.write("")
-    ccol1, ccol2 = st.columns(2)
-    with ccol1:
+    with scol3:
         st.markdown("""
         <div class="menu-card menu-amber">
             <div class="menu-icon">🔢</div>
             <div class="menu-title">Bộ đếm khách & phòng</div>
-            <div class="menu-desc">Đếm số khách và số phòng (nước ngoài / Việt Nam) cho từng file ARR · DEP · INHOUSE</div>
+            <div class="menu-desc">Đếm số khách và số phòng (nước ngoài / Việt Nam) cho từng file ARR · DEP · INHOUSE · ĐK14</div>
         </div>
         """, unsafe_allow_html=True)
         st.button("Mở  →", key="btn_counter", use_container_width=True,
