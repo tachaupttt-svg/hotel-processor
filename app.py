@@ -1293,7 +1293,7 @@ st.markdown("""
     section[data-testid="stMain"] > div,
     div[data-testid="stMainBlockContainer"] { }
     section[data-testid="stMain"] {
-        display: flex; flex-direction: column; justify-content: center;
+        display: flex; flex-direction: column; justify-content: safe center;
         min-height: 100vh;
     }
     .app-header {
