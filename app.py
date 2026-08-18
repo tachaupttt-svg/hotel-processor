@@ -534,6 +534,9 @@ def process_xlsx(xlsx_bytes, rate):
     headers = [ws.cell(1, ci).value for ci in range(1, n_cols + 1)]
     col_src = [src_map.get(_norm_nat(h)) if h else None for h in headers]
     don_gia_idx = next((i + 1 for i, h in enumerate(headers) if h and _norm_nat(h) == _norm_nat('ĐƠN GIÁ')), None)
+    nat_idx = next((i + 1 for i, h in enumerate(headers) if h and _norm_nat(h) == _norm_nat('QUỐC TỊCH')), None)
+    port_idx = next((i + 1 for i, h in enumerate(headers)
+                      if h and _norm_nat(h) == _norm_nat('CỬA KHẨU NHẬP CẢNH')), None)
 
     ws.delete_rows(2)  # bỏ dòng mẫu
 
@@ -558,6 +561,10 @@ def process_xlsx(xlsx_bytes, rate):
                 dg.value = round(dg.value * rate)
                 dg.fill = PatternFill("solid", start_color="FFFF00")
                 conv += 1
+        if nat_idx and port_idx:
+            nat_val = str(ws.cell(er, nat_idx).value or '').strip()
+            if nat_val and not _norm_nat(nat_val).startswith('vietnam'):
+                ws.cell(er, port_idx).value = 'Cảng hàng không quốc tế Cam Ranh'
     return wb, conv
 
 def split_wb(wb, loai):
