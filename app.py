@@ -2035,11 +2035,13 @@ if st.session_state.menu == "daily":
                                        "📝 KBTT NNN", "📑 Thông báo lưu trú VNM"]
 
                     # ── Xử lý file ĐK14 (độc lập, chỉ cần file XLS) ──
+                    dk14_bytes = None
                     if xls_file:
                         progress.progress(85, text="Điền mẫu ĐK14...")
                         xls_bytes = xls_file.read()
                         wb_dk14, dk_count = build_dk14(xls_bytes)
-                        zf.writestr(f'dk14_{date_str}.xlsx', wb_to_bytes(wb_dk14))
+                        dk14_bytes = wb_to_bytes(wb_dk14)
+                        zf.writestr(f'dk14_{date_str}.xlsx', dk14_bytes)
                         has_dk14 = True
                         files_made.append("🚔 ĐK14")
 
@@ -2048,6 +2050,7 @@ if st.session_state.menu == "daily":
 
                 # Lưu kết quả vào session — kết quả & nút tải không biến mất sau rerun
                 _daily = {'files_made': files_made, 'zip': zip_buf.getvalue(),
+                          'dk14_bytes': dk14_bytes,
                           'date_str': date_str, 'has_xlsx': has_xlsx, 'has_dk14': has_dk14}
                 if has_xlsx:
                     unknown_nats = []
@@ -2089,14 +2092,25 @@ if st.session_state.menu == "daily":
 
         st.markdown("**File đã tạo:** " + " · ".join(_dr['files_made']))
 
-        st.download_button(
-            label="⬇️ Tải về tất cả file (ZIP)",
-            data=_dr['zip'],
-            file_name=f"hotel_{_dr['date_str']}.zip",
-            mime="application/zip",
-            use_container_width=True,
-            type="primary"
-        )
+        if _dr['has_dk14'] and not _dr['has_xlsx']:
+            # Chỉ có 1 file ĐK14 → tải thẳng file Excel, không cần đóng gói ZIP.
+            st.download_button(
+                label="⬇️ Tải file ĐK14 (Excel)",
+                data=_dr['dk14_bytes'],
+                file_name=f"dk14_{_dr['date_str']}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+                type="primary"
+            )
+        else:
+            st.download_button(
+                label="⬇️ Tải về tất cả file (ZIP)",
+                data=_dr['zip'],
+                file_name=f"hotel_{_dr['date_str']}.zip",
+                mime="application/zip",
+                use_container_width=True,
+                type="primary"
+            )
         st.write("")
         st.button("←  Quay lại menu", key="back_daily_bottom", on_click=go_menu, args=(None,))
 
