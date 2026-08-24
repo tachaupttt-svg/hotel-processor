@@ -1639,7 +1639,7 @@ components.html("""
     font-family:'Source Sans Pro','Segoe UI',Arial,sans-serif;
     padding-bottom:1.5rem; border-bottom:1px solid #ececec;
 ">
-    <div style="font-size:1.5rem; font-weight:650; color:#1a1a1a; letter-spacing:-0.02em;">
+    <div style="font-size:1.75rem; font-weight:650; color:#1a1a1a; letter-spacing:-0.02em;">
         <span id="greet-emoji" style="margin-right:6px;"></span><span id="greet-text"></span>, Ta Chau
     </div>
     <div id="date-wrap" style="font-size:0.85rem; color:#9b9b9b; font-weight:500; font-variant-numeric:tabular-nums;">
