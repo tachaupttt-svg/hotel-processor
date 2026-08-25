@@ -1401,7 +1401,13 @@ st.markdown("""
 
 # Minimalist welcome header — lời chào + đồng hồ tính theo GIỜ MÁY NGƯỜI DÙNG (JS)
 # Splash chào mừng hoạt hình — chỉ hiện 1 lần mỗi phiên tab (sessionStorage), click để bỏ qua
-components.html("""
+#
+# Gộp chung splash + đồng hồ/lời chào + trang trí (mây/chim/hoa) vào MỘT
+# components.html duy nhất (thay vì 3 iframe riêng) — giảm số iframe được tạo
+# lại ở MỖI lần rerun (mỗi lần bấm nút) để đỡ giật/khựng. Vẫn gọi KHÔNG ĐIỀU
+# KIỆN như trước (không dùng session_state để "chỉ chạy 1 lần" — cách đó khiến
+# Streamlit xóa mất phần tử đã tạo ở những lần rerun sau, đã thử và bị lỗi).
+_splash_html = """
 <script>
 (function(){
     var doc = window.parent.document;
@@ -1497,7 +1503,7 @@ components.html("""
     }, 12000);
 })();
 </script>
-""", height=0)
+"""
 
 # ---- Nền đổi theo thời gian trong ngày (sáng / trưa-chiều / tối) — theo giờ máy người dùng ----
 import base64 as _b64
@@ -1630,9 +1636,9 @@ def _build_bg_switcher_js():
               .replace("__B64_NOON__", b64["noon"])
               .replace("__B64_NIGHT__", b64["night"]))
 
-components.html(_build_bg_switcher_js(), height=0)
+_bg_switcher_html = _build_bg_switcher_js()
 
-components.html("""
+_clock_html = """
 <div style="
     display:flex; align-items:center; justify-content:space-between;
     flex-wrap:wrap; gap:8px;
@@ -1675,10 +1681,10 @@ components.html("""
     setInterval(update, 1000);
     update();
 </script>
-""", height=64)
+"""
 
 # Hiệu ứng trang trí: hoa anh đào rơi + mây trôi — chèn NGOÀI khung (sau khung che)
-components.html("""
+_deco_html = """
 <script>
 (function(){
     var doc = window.parent.document;
@@ -1742,7 +1748,14 @@ components.html("""
     app.insertBefore(d, app.firstChild);
 })();
 </script>
-""", height=0)
+"""
+
+# Gộp cả 4 mảnh (splash + đổi nền + đồng hồ/lời chào + trang trí) vào MỘT
+# iframe duy nhất — trước đây là 4 iframe riêng, mỗi cái đều bị tạo lại ở
+# MỌI lần rerun (mỗi lần bấm nút), tốn thời gian tải + chạy JS lặp lại không
+# cần thiết. Gộp lại giúp giảm hẳn số iframe/khối lượng dữ liệu gửi đi mỗi
+# lần thao tác, đỡ giật hơn khi chuyển màn hình.
+components.html(_splash_html + _bg_switcher_html + _clock_html + _deco_html, height=64)
 
 # Menu selection (session state)
 if "menu" not in st.session_state:
