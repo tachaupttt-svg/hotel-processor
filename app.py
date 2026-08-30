@@ -577,6 +577,35 @@ def split_wb(wb, loai):
     for i, row in enumerate(ws2.iter_rows(min_row=2,max_row=ws2.max_row),1): row[0].value=i
     return wb2
 
+def _norm_room_str(v):
+    s = str(v).strip() if v is not None else ''
+    if s.endswith('.0'): s = s[:-2]
+    return s
+
+def list_rooms_in_xlsx(xlsx_bytes):
+    """Danh sách SỐ PHÒNG duy nhất trong file nguồn (để chọn xử lý riêng)."""
+    df = pd.read_excel(io.BytesIO(xlsx_bytes))
+    if 'SỐ PHÒNG' not in df.columns:
+        return []
+    rooms = {_norm_room_str(v) for v in df['SỐ PHÒNG'].dropna()}
+    rooms.discard('')
+    return sorted(rooms, key=lambda s: (len(s), s))
+
+def filter_xlsx_by_rooms(xlsx_bytes, rooms):
+    """Chỉ giữ lại các dòng có SỐ PHÒNG nằm trong `rooms` — dùng khi chỉ cần
+    đăng ký/xử lý một số phòng thay vì toàn bộ file."""
+    wb = load_workbook(io.BytesIO(xlsx_bytes))
+    ws = wb.active
+    rc = next((c.column for c in ws[1] if c.value == 'SỐ PHÒNG'), None)
+    if rc is None:
+        return xlsx_bytes
+    keep = set(rooms)
+    dels = [row[0].row for row in ws.iter_rows(min_row=2, max_row=ws.max_row)
+            if _norm_room_str(row[rc - 1].value) not in keep]
+    for r in reversed(dels):
+        ws.delete_rows(r)
+    return wb_to_bytes(wb)
+
 def _norm_name(s):
     """Chuẩn hóa tên để khớp giữa 2 file: bỏ dấu, hoa thường, gộp khoảng trắng."""
     s = str(s).lower().strip()
@@ -1990,6 +2019,17 @@ if st.session_state.menu == "daily":
         "File Visa — dữ liệu thô date visa (tùy chọn, để tự điền cột 'Thời hạn tạm trú tại VN' trong KBTT)",
         type=['xlsx'], key="daily_visa")
 
+    selected_rooms = []
+    if xlsx_file is not None:
+        try:
+            _rooms_available = list_rooms_in_xlsx(xlsx_file.getvalue())
+        except Exception:
+            _rooms_available = []
+        if _rooms_available:
+            selected_rooms = st.multiselect(
+                "🚪 Chọn phòng cần xử lý (để trống = xử lý tất cả phòng trong file)",
+                options=_rooms_available, key="daily_rooms")
+
     st.write("")
 
     if st.button("⚡ Bắt đầu xử lý", type="primary", disabled=(xlsx_file is None and xls_file is None), use_container_width=True):
@@ -2015,6 +2055,8 @@ if st.session_state.menu == "daily":
                     if has_xlsx:
                         progress.progress(10, text="Quy đổi tỷ giá...")
                         xlsx_bytes = xlsx_file.read()
+                        if selected_rooms:
+                            xlsx_bytes = filter_xlsx_by_rooms(xlsx_bytes, selected_rooms)
                         wb, conv = process_xlsx(xlsx_bytes, rate)
                         df = pd.read_excel(io.BytesIO(xlsx_bytes))
                         df_intl = df[df['LOẠI KHÁCH']=='Quốc tế'].reset_index(drop=True)
