@@ -2055,10 +2055,16 @@ if st.session_state.menu == "daily":
                     if has_xlsx:
                         progress.progress(10, text="Quy đổi tỷ giá...")
                         xlsx_bytes = xlsx_file.read()
-                        if selected_rooms:
-                            xlsx_bytes = filter_xlsx_by_rooms(xlsx_bytes, selected_rooms)
-                        wb, conv = process_xlsx(xlsx_bytes, rate)
+                        # Đọc dữ liệu bằng pandas từ bytes GỐC (chưa qua openpyxl lưu lại)
+                        # để tránh lỗi pandas làm mất số 0 đầu của các cột dạng text
+                        # (vd: SỐ GIẤY TỜ) khi đọc lại file mà openpyxl vừa ghi.
                         df = pd.read_excel(io.BytesIO(xlsx_bytes))
+                        wb_bytes_for_process = xlsx_bytes
+                        if selected_rooms:
+                            wb_bytes_for_process = filter_xlsx_by_rooms(xlsx_bytes, selected_rooms)
+                            _keep_rooms = set(selected_rooms)
+                            df = df[df['SỐ PHÒNG'].apply(_norm_room_str).isin(_keep_rooms)].reset_index(drop=True)
+                        wb, conv = process_xlsx(wb_bytes_for_process, rate)
                         df_intl = df[df['LOẠI KHÁCH']=='Quốc tế'].reset_index(drop=True)
                         df_vn   = df[df['LOẠI KHÁCH']=='Việt Nam'].reset_index(drop=True)
 
