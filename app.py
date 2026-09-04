@@ -1215,9 +1215,29 @@ def _norm_room(r):
     if s.endswith('.0'): s = s[:-2]
     return s.upper()  # 12a05 và 12A05 là một phòng
 
-def reconcile(smile_bytes, luutru_bytes, today):
+def _parse_exception_list(exception_bytes):
+    """Trích số hộ chiếu từ file danh sách ngoại lệ (khách sẽ luôn không xuất
+    hiện trên Smile, vd khách dài hạn). Chấp nhận file dạng xuất từ Trang lưu
+    trú, trong đó các dòng ĐƯỢC ĐÁNH DẤU là ngoại lệ bằng cách để trống Họ tên
+    và chỉ ghi Số hộ chiếu (thường được thêm vào cuối file). Nếu file không có
+    dòng nào kiểu đó (mọi dòng đều có Họ tên) thì coi TOÀN BỘ danh sách là
+    ngoại lệ."""
+    dfe = pd.read_excel(io.BytesIO(exception_bytes), header=9)
+    if 'Số hộ chiếu' not in dfe.columns:
+        dfe = pd.read_excel(io.BytesIO(exception_bytes), header=0)
+    if 'Số hộ chiếu' not in dfe.columns:
+        raise ValueError("File danh sách ngoại lệ không có cột 'Số hộ chiếu'.")
+    dfe = dfe.dropna(subset=['Số hộ chiếu'])
+    if 'Họ tên' in dfe.columns and dfe['Họ tên'].isna().any():
+        dfe = dfe[dfe['Họ tên'].isna()]
+    return set(dfe['Số hộ chiếu'].apply(_norm_pp)) - {''}
+
+def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
     """Đối chiếu file Smile (inhouse) với file trang quản lý lưu trú.
-    today: pd.Timestamp ngày xuất file (hôm nay)."""
+    today: pd.Timestamp ngày xuất file (hôm nay).
+    exception_bytes: file danh sách ngoại lệ (không bắt buộc) — khách sẽ luôn
+    không xuất hiện trên Smile; dùng để tách nhóm 'thừa' thành người đã biết
+    trước (bình thường) và người thật sự cần kiểm tra."""
     # ── Đọc Smile ──
     df1 = pd.read_excel(io.BytesIO(smile_bytes), header=0)
     smile = df1[['Passport #','NAT','Rm#','Arrival','Last Name','First Name']].copy()
@@ -1283,6 +1303,23 @@ def reconcile(smile_bytes, luutru_bytes, today):
     room_chua = sorted(smile_rooms - luutru_rooms, key=_sortkey)
     room_thua = sorted(luutru_rooms - smile_rooms, key=_sortkey)
 
+    # Đối chiếu với danh sách ngoại lệ (khách luôn không có trên Smile) —
+    # tách nhóm "thừa" thành đã biết trước (bình thường) và cần kiểm tra thật.
+    exc_pp = _parse_exception_list(exception_bytes) if exception_bytes is not None else set()
+    if exc_pp:
+        thua_known = thua[thua['Số hộ chiếu'].isin(exc_pp)].reset_index(drop=True)
+        thua_unknown = thua[~thua['Số hộ chiếu'].isin(exc_pp)].reset_index(drop=True)
+        exception_still_here = (luutru_f[luutru_f['pp'].isin(exc_pp)]
+                                 .drop_duplicates('pp')[['Họ tên','pp','room']].copy())
+        exception_still_here.columns = ['Họ tên','Số hộ chiếu','Số phòng']
+        exception_still_here = exception_still_here.sort_values('Họ tên').reset_index(drop=True)
+        exception_gone = sorted(exc_pp - luutru_pp, key=_sortkey)
+    else:
+        thua_known = thua.iloc[0:0].copy()
+        thua_unknown = thua.copy()
+        exception_still_here = pd.DataFrame(columns=['Họ tên','Số hộ chiếu','Số phòng'])
+        exception_gone = []
+
     return {
         'smile_total': len(smile), 'smile_filtered': len(smile_f),
         'luutru_total': len(df2), 'luutru_filtered': len(luutru_f),
@@ -1290,6 +1327,9 @@ def reconcile(smile_bytes, luutru_bytes, today):
         'room_chua': room_chua, 'room_thua': room_thua,
         'room_match': len(smile_rooms & luutru_rooms),
         'smile_rooms': len(smile_rooms), 'luutru_rooms': len(luutru_rooms),
+        'exception_total': len(exc_pp),
+        'thua_known': thua_known, 'thua_unknown': thua_unknown,
+        'exception_still_here': exception_still_here, 'exception_gone': exception_gone,
     }
 
 
@@ -2408,6 +2448,13 @@ if st.session_state.menu == "recon_person":
     with rc2:
         luutru_file = st.file_uploader("File Trang lưu trú người nước ngoài (.xlsx)", type=['xlsx'], key="recon_luutru")
 
+    exception_file = st.file_uploader(
+        "File danh sách ngoại lệ — khách luôn không có trên Smile (.xlsx, không bắt buộc)",
+        type=['xlsx'], key="recon_exception",
+        help="Có thể dùng ngay file Trang lưu trú, thêm các dòng chỉ ghi Số hộ chiếu "
+             "(để trống Họ tên) cho từng khách ngoại lệ. Nhóm 'thừa' bên dưới sẽ được "
+             "tách ra: ai nằm trong danh sách này (bình thường) và ai thật sự cần kiểm tra.")
+
     today_str = st.text_input("📅 Ngày xuất file (hôm nay)", value=datetime.date.today().strftime('%d/%m/%Y'),
                               help="Dùng để loại bỏ: khách arrival hôm nay (Smile) và khách ngày đi dự kiến hôm nay (Lưu trú)")
 
@@ -2418,7 +2465,9 @@ if st.session_state.menu == "recon_person":
         with st.spinner("Đang đối chiếu..."):
             try:
                 today = pd.to_datetime(today_str, format='%d/%m/%Y')
-                st.session_state['recon_results'] = reconcile(smile_file.read(), luutru_file.read(), today)
+                exc_bytes = exception_file.read() if exception_file is not None else None
+                st.session_state['recon_results'] = reconcile(smile_file.read(), luutru_file.read(), today,
+                                                                exception_bytes=exc_bytes)
             except Exception as e:
                 st.session_state.pop('recon_results', None)
                 st.error(f"❌ Lỗi: {e}")
@@ -2452,13 +2501,43 @@ if st.session_state.menu == "recon_person":
         else:
             st.success("✅ Không có khách nào chưa đăng ký lưu trú.")
 
-        if n_thua > 0:
+        has_exception = r.get('exception_total', 0) > 0
+
+        if n_thua > 0 and not has_exception:
             st.warning(f"🟡 Chênh lệch **{n_thua} người**: có trên Trang quản lý người nước ngoài nhưng KHÔNG có trên Smile (có thể đã checkout nhưng chưa xóa khỏi lưu trú):")
             st.dataframe(r['thua'], use_container_width=True, hide_index=True)
             # Nút tải danh sách chênh lệch
             _csv = r['thua'].to_csv(index=False).encode('utf-8-sig')
             st.download_button("⬇️ Tải danh sách chênh lệch (CSV)", _csv,
                                file_name="chenh_lech_luu_tru.csv", mime="text/csv")
+        elif n_thua > 0 and has_exception:
+            n_known = len(r['thua_known']); n_unknown = len(r['thua_unknown'])
+            st.warning(f"🟡 Chênh lệch **{n_thua} người** có trên Trang quản lý người nước ngoài nhưng KHÔNG có trên Smile — "
+                       f"đã đối chiếu với danh sách ngoại lệ ({r['exception_total']} khách):")
+
+            if n_unknown > 0:
+                st.error(f"🔴 {n_unknown} người KHÔNG nằm trong danh sách ngoại lệ — cần kiểm tra lại:")
+                st.dataframe(r['thua_unknown'], use_container_width=True, hide_index=True)
+                _csv = r['thua_unknown'].to_csv(index=False).encode('utf-8-sig')
+                st.download_button("⬇️ Tải danh sách cần kiểm tra (CSV)", _csv,
+                                   file_name="can_kiem_tra.csv", mime="text/csv", key="dl_thua_unknown")
+            else:
+                st.success("✅ Không có ai ngoài danh sách ngoại lệ — toàn bộ chênh lệch đều đã biết trước.")
+
+            if n_known > 0:
+                with st.expander(f"✅ {n_known} người nằm trong danh sách ngoại lệ (bình thường, không phải lỗi)"):
+                    st.dataframe(r['thua_known'], use_container_width=True, hide_index=True)
+
+        if has_exception:
+            n_gone = len(r['exception_gone'])
+            if n_gone > 0:
+                st.info(f"ℹ️ {n_gone} số hộ chiếu trong danh sách ngoại lệ KHÔNG còn trên Trang quản lý người nước ngoài "
+                        f"(có thể đã hết hạn/bị xóa): " + ", ".join(r['exception_gone'][:50]) +
+                        (" ..." if n_gone > 50 else ""))
+            n_still = len(r['exception_still_here'])
+            if n_still > 0:
+                with st.expander(f"📋 {n_still} khách ngoại lệ vẫn còn lưu trú trên hệ thống người nước ngoài"):
+                    st.dataframe(r['exception_still_here'], use_container_width=True, hide_index=True)
 
         if n_dup > 0:
             st.warning(f"🟠 {n_dup} dòng ĐĂNG KÝ TRÙNG trên lưu trú:")
