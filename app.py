@@ -1247,18 +1247,23 @@ DEFAULT_EXCEPTION_LIST = [
     {'Họ tên': 'KASABIAN KARINA', 'Số hộ chiếu': '772552439', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': 'PHONG NOI BO'},
     {'Họ tên': 'OLMEZ MURAT', 'Số hộ chiếu': 'U36308112', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': 'PHONG NOI BO'},
 ]
-DEFAULT_EXCEPTION_PP = {_norm_pp(x['Số hộ chiếu']) for x in DEFAULT_EXCEPTION_LIST}
+DEFAULT_EXCEPTION_INFO = {
+    _norm_pp(x['Số hộ chiếu']): {'Họ tên': x['Họ tên'], 'Số phòng': x['Số phòng']}
+    for x in DEFAULT_EXCEPTION_LIST
+}
 
 def _parse_exception_list(exception_bytes):
-    """Trích số hộ chiếu từ file danh sách ngoại lệ (khách sẽ luôn không xuất
-    hiện trên Smile — thường là nhân viên nội bộ ở 'phòng nội bộ', không phải
-    khách trả tiền). File thực tế nhận được có dạng: bản xuất Trang lưu trú
-    đầy đủ Họ tên (gồm cả khách thường lẫn nhân viên), CỘNG THÊM một khối chỉ
-    liệt kê Số hộ chiếu (không có Họ tên) là các khách BÌNH THƯỜNG — dùng để
-    loại trừ. Vậy nên: ngoại lệ = những dòng có đầy đủ Họ tên nhưng KHÔNG có
-    số hộ chiếu trùng trong khối chỉ-liệt-kê-số-hộ-chiếu đó. Nếu file không
-    có khối 'đầy đủ Họ tên' nào (toàn bộ chỉ là số hộ chiếu) thì coi luôn danh
-    sách đó là ngoại lệ."""
+    """Trích thông tin (Họ tên, Số phòng) theo số hộ chiếu từ file danh sách
+    ngoại lệ (khách sẽ luôn không xuất hiện trên Smile — thường là nhân viên
+    nội bộ ở 'phòng nội bộ', không phải khách trả tiền). File thực tế nhận
+    được có dạng: bản xuất Trang lưu trú đầy đủ Họ tên (gồm cả khách thường
+    lẫn nhân viên), CỘNG THÊM một khối chỉ liệt kê Số hộ chiếu (không có Họ
+    tên) là các khách BÌNH THƯỜNG — dùng để loại trừ. Vậy nên: ngoại lệ =
+    những dòng có đầy đủ Họ tên nhưng KHÔNG có số hộ chiếu trùng trong khối
+    chỉ-liệt-kê-số-hộ-chiếu đó. Nếu file không có khối 'đầy đủ Họ tên' nào
+    (toàn bộ chỉ là số hộ chiếu) thì coi luôn danh sách đó là ngoại lệ (không
+    có tên/phòng kèm theo).
+    Trả về dict {số hộ chiếu đã chuẩn hóa: {'Họ tên':.., 'Số phòng':..}}."""
     dfe = pd.read_excel(io.BytesIO(exception_bytes), header=9)
     if 'Số hộ chiếu' not in dfe.columns:
         dfe = pd.read_excel(io.BytesIO(exception_bytes), header=0)
@@ -1266,14 +1271,23 @@ def _parse_exception_list(exception_bytes):
         raise ValueError("File danh sách ngoại lệ không có cột 'Số hộ chiếu'.")
     dfe = dfe.dropna(subset=['Số hộ chiếu'])
     if 'Họ tên' not in dfe.columns:
-        return set(dfe['Số hộ chiếu'].apply(_norm_pp)) - {''}
+        return {pp: {'Họ tên': '', 'Số phòng': ''}
+                for pp in dfe['Số hộ chiếu'].apply(_norm_pp) if pp}
     named = dfe[dfe['Họ tên'].notna()]
     bare = dfe[dfe['Họ tên'].isna()]
     if named.empty:
-        return set(bare['Số hộ chiếu'].apply(_norm_pp)) - {''}
+        return {pp: {'Họ tên': '', 'Số phòng': ''}
+                for pp in bare['Số hộ chiếu'].apply(_norm_pp) if pp}
     bare_pp = set(bare['Số hộ chiếu'].apply(_norm_pp)) - {''}
-    named_pp = set(named['Số hộ chiếu'].apply(_norm_pp)) - {''}
-    return named_pp - bare_pp
+    info = {}
+    for _, row in named.iterrows():
+        pp = _norm_pp(row['Số hộ chiếu'])
+        if pp and pp not in bare_pp:
+            info[pp] = {
+                'Họ tên': str(row['Họ tên']).strip(),
+                'Số phòng': str(row['Số phòng']).strip() if 'Số phòng' in named.columns and pd.notna(row.get('Số phòng')) else '',
+            }
+    return info
 
 def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
     """Đối chiếu file Smile (inhouse) với file trang quản lý lưu trú.
@@ -1348,9 +1362,10 @@ def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
 
     # Đối chiếu với danh sách ngoại lệ (khách luôn không có trên Smile) —
     # tách nhóm "thừa" thành đã biết trước (bình thường) và cần kiểm tra thật.
-    exc_pp = set(DEFAULT_EXCEPTION_PP)
+    exception_info = dict(DEFAULT_EXCEPTION_INFO)
     if exception_bytes is not None:
-        exc_pp |= _parse_exception_list(exception_bytes)
+        exception_info.update(_parse_exception_list(exception_bytes))
+    exc_pp = set(exception_info)
     if exc_pp:
         thua_known = thua[thua['Số hộ chiếu'].isin(exc_pp)].reset_index(drop=True)
         thua_unknown = thua[~thua['Số hộ chiếu'].isin(exc_pp)].reset_index(drop=True)
@@ -1358,12 +1373,17 @@ def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
                                  .drop_duplicates('pp')[['Họ tên','pp','room']].copy())
         exception_still_here.columns = ['Họ tên','Số hộ chiếu','Số phòng']
         exception_still_here = exception_still_here.sort_values('Họ tên').reset_index(drop=True)
-        exception_gone = sorted(exc_pp - luutru_pp, key=_sortkey)
+        gone_pp = sorted(exc_pp - luutru_pp, key=_sortkey)
+        exception_gone = pd.DataFrame([
+            {'Họ tên': exception_info[pp].get('Họ tên', ''), 'Số hộ chiếu': pp,
+             'Số phòng': exception_info[pp].get('Số phòng', '')}
+            for pp in gone_pp
+        ], columns=['Họ tên','Số hộ chiếu','Số phòng'])
     else:
         thua_known = thua.iloc[0:0].copy()
         thua_unknown = thua.copy()
         exception_still_here = pd.DataFrame(columns=['Họ tên','Số hộ chiếu','Số phòng'])
-        exception_gone = []
+        exception_gone = pd.DataFrame(columns=['Họ tên','Số hộ chiếu','Số phòng'])
 
     return {
         'smile_total': len(smile), 'smile_filtered': len(smile_f),
@@ -2581,9 +2601,9 @@ if st.session_state.menu == "recon_person":
         if has_exception:
             n_gone = len(r['exception_gone'])
             if n_gone > 0:
-                st.info(f"ℹ️ {n_gone} số hộ chiếu trong danh sách ngoại lệ KHÔNG còn trên Trang quản lý người nước ngoài "
-                        f"(có thể đã hết hạn/bị xóa): " + ", ".join(r['exception_gone'][:50]) +
-                        (" ..." if n_gone > 50 else ""))
+                st.info(f"ℹ️ {n_gone} người trong danh sách ngoại lệ KHÔNG còn trên Trang quản lý người nước ngoài "
+                        f"(có thể đã hết hạn/bị xóa):")
+                st.dataframe(r['exception_gone'], use_container_width=True, hide_index=True)
             n_still = len(r['exception_still_here'])
             if n_still > 0:
                 with st.expander(f"📋 {n_still} khách ngoại lệ vẫn còn lưu trú trên hệ thống người nước ngoài"):
