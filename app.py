@@ -1215,22 +1215,65 @@ def _norm_room(r):
     if s.endswith('.0'): s = s[:-2]
     return s.upper()  # 12a05 và 12A05 là một phòng
 
+# Danh sách ngoại lệ mặc định — nhân viên nội bộ (bếp, hướng dẫn viên, giải
+# trí, quản lý...) có đăng ký trên Trang lưu trú người nước ngoài nhưng không
+# phải khách trả tiền nên sẽ luôn không xuất hiện trên Smile. Áp dụng sẵn mỗi
+# lần kiểm tra, không cần tải file ngoại lệ nữa. Cập nhật danh sách này tại
+# đây khi có thay đổi nhân sự.
+DEFAULT_EXCEPTION_LIST = [
+    {'Họ tên': 'DURUKAN BURKAY (directo fb&kit)', 'Số hộ chiếu': 'U21039284', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '506'},
+    {'Họ tên': 'ASLAN CAN (ENT manager)', 'Số hộ chiếu': 'U25646580', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '510'},
+    {'Họ tên': 'RUDSKAIA VIKTORIIA ( ENT ĐK KÉ 516)', 'Số hộ chiếu': '768076306', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '516'},
+    {'Họ tên': 'SHUKEYEVA MADINA ( ENT ĐK KÉ 520)', 'Số hộ chiếu': 'N15696601', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '520'},
+    {'Họ tên': 'KOROTKOVA YELENA ( ENT ĐK KÉ 519)', 'Số hộ chiếu': 'N13835191', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '519'},
+    {'Họ tên': 'GAFU OXANA  ( ENT ĐK KÉ 518)', 'Số hộ chiếu': 'N13111266', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '518'},
+    {'Họ tên': 'KARAAGAC MEHMET CENGIZ', 'Số hộ chiếu': 'U24677256', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '1042'},
+    {'Họ tên': 'ACIKGOZ GOKHAN ( BẾP ĐK KÉ 506)', 'Số hộ chiếu': 'U40108913', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '506'},
+    {'Họ tên': 'BAZARBAYEV ASLANBEK (guide)', 'Số hộ chiếu': 'N15077980', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '534'},
+    {'Họ tên': 'KIM DMITRII (guide)', 'Số hộ chiếu': '763075493', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '532'},
+    {'Họ tên': 'MAMEDOV KAMIL (guide)', 'Số hộ chiếu': 'N17685004', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '534'},
+    {'Họ tên': 'DOVAR MUSTAFA', 'Số hộ chiếu': 'U31576701', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '519'},
+    {'Họ tên': 'TURAN UGUR', 'Số hộ chiếu': 'U24453636', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '516'},
+    {'Họ tên': 'TAYFUR ANIL (ENT tóc xoăn)', 'Số hộ chiếu': 'U29232763', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '512'},
+    {'Họ tên': 'BERBER CIHAN ( Bếp trưởng)', 'Số hộ chiếu': 'U37721919', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '518'},
+    {'Họ tên': 'KOTOV IHOR (guide)', 'Số hộ chiếu': 'FU052955', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '532'},
+    {'Họ tên': 'ZAKHARCHENKO VALENTYNA (guide)', 'Số hộ chiếu': 'UA034939', 'Quốc tịch': 'U-crai-na', 'Số phòng': '522'},
+    {'Họ tên': 'SUCHSHIK ALEXANDR (GIẢI TRÍ ĐK KÉ 508)', 'Số hộ chiếu': 'N11823260', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '508'},
+    {'Họ tên': 'DEMIR UGUR (AGM)', 'Số hộ chiếu': 'U23530522', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': 'PHONG NOI BO'},
+    {'Họ tên': 'MOMPIE VAZQUEZ OLEXIS (entertaiment)', 'Số hộ chiếu': 'L768690', 'Quốc tịch': 'Cu Ba', 'Số phòng': 'P NOI BO'},
+    {'Họ tên': 'OZDEMIR FERHAT', 'Số hộ chiếu': 'U26515178', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': 'Phòng nội bộ'},
+    {'Họ tên': 'MAYSTRENKO VICTORIYA (guide)', 'Số hộ chiếu': '766938629', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '522'},
+    {'Họ tên': 'SERGEEVA ANASTASIIA GRM', 'Số hộ chiếu': '551237982', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '520'},
+    {'Họ tên': 'KASABIAN KARINA', 'Số hộ chiếu': '772552439', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': 'PHONG NOI BO'},
+    {'Họ tên': 'OLMEZ MURAT', 'Số hộ chiếu': 'U36308112', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': 'PHONG NOI BO'},
+]
+DEFAULT_EXCEPTION_PP = {_norm_pp(x['Số hộ chiếu']) for x in DEFAULT_EXCEPTION_LIST}
+
 def _parse_exception_list(exception_bytes):
     """Trích số hộ chiếu từ file danh sách ngoại lệ (khách sẽ luôn không xuất
-    hiện trên Smile, vd khách dài hạn). Chấp nhận file dạng xuất từ Trang lưu
-    trú, trong đó các dòng ĐƯỢC ĐÁNH DẤU là ngoại lệ bằng cách để trống Họ tên
-    và chỉ ghi Số hộ chiếu (thường được thêm vào cuối file). Nếu file không có
-    dòng nào kiểu đó (mọi dòng đều có Họ tên) thì coi TOÀN BỘ danh sách là
-    ngoại lệ."""
+    hiện trên Smile — thường là nhân viên nội bộ ở 'phòng nội bộ', không phải
+    khách trả tiền). File thực tế nhận được có dạng: bản xuất Trang lưu trú
+    đầy đủ Họ tên (gồm cả khách thường lẫn nhân viên), CỘNG THÊM một khối chỉ
+    liệt kê Số hộ chiếu (không có Họ tên) là các khách BÌNH THƯỜNG — dùng để
+    loại trừ. Vậy nên: ngoại lệ = những dòng có đầy đủ Họ tên nhưng KHÔNG có
+    số hộ chiếu trùng trong khối chỉ-liệt-kê-số-hộ-chiếu đó. Nếu file không
+    có khối 'đầy đủ Họ tên' nào (toàn bộ chỉ là số hộ chiếu) thì coi luôn danh
+    sách đó là ngoại lệ."""
     dfe = pd.read_excel(io.BytesIO(exception_bytes), header=9)
     if 'Số hộ chiếu' not in dfe.columns:
         dfe = pd.read_excel(io.BytesIO(exception_bytes), header=0)
     if 'Số hộ chiếu' not in dfe.columns:
         raise ValueError("File danh sách ngoại lệ không có cột 'Số hộ chiếu'.")
     dfe = dfe.dropna(subset=['Số hộ chiếu'])
-    if 'Họ tên' in dfe.columns and dfe['Họ tên'].isna().any():
-        dfe = dfe[dfe['Họ tên'].isna()]
-    return set(dfe['Số hộ chiếu'].apply(_norm_pp)) - {''}
+    if 'Họ tên' not in dfe.columns:
+        return set(dfe['Số hộ chiếu'].apply(_norm_pp)) - {''}
+    named = dfe[dfe['Họ tên'].notna()]
+    bare = dfe[dfe['Họ tên'].isna()]
+    if named.empty:
+        return set(bare['Số hộ chiếu'].apply(_norm_pp)) - {''}
+    bare_pp = set(bare['Số hộ chiếu'].apply(_norm_pp)) - {''}
+    named_pp = set(named['Số hộ chiếu'].apply(_norm_pp)) - {''}
+    return named_pp - bare_pp
 
 def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
     """Đối chiếu file Smile (inhouse) với file trang quản lý lưu trú.
@@ -1305,7 +1348,9 @@ def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
 
     # Đối chiếu với danh sách ngoại lệ (khách luôn không có trên Smile) —
     # tách nhóm "thừa" thành đã biết trước (bình thường) và cần kiểm tra thật.
-    exc_pp = _parse_exception_list(exception_bytes) if exception_bytes is not None else set()
+    exc_pp = set(DEFAULT_EXCEPTION_PP)
+    if exception_bytes is not None:
+        exc_pp |= _parse_exception_list(exception_bytes)
     if exc_pp:
         thua_known = thua[thua['Số hộ chiếu'].isin(exc_pp)].reset_index(drop=True)
         thua_unknown = thua[~thua['Số hộ chiếu'].isin(exc_pp)].reset_index(drop=True)
@@ -2448,12 +2493,17 @@ if st.session_state.menu == "recon_person":
     with rc2:
         luutru_file = st.file_uploader("File Trang lưu trú người nước ngoài (.xlsx)", type=['xlsx'], key="recon_luutru")
 
+    st.caption(f"✅ Đã áp dụng sẵn danh sách ngoại lệ nội bộ ({len(DEFAULT_EXCEPTION_LIST)} người) — không cần tải file mỗi lần kiểm tra.")
+    with st.expander(f"📋 Xem danh sách ngoại lệ có sẵn ({len(DEFAULT_EXCEPTION_LIST)} người)"):
+        st.dataframe(pd.DataFrame(DEFAULT_EXCEPTION_LIST), use_container_width=True, hide_index=True)
+
     exception_file = st.file_uploader(
-        "File danh sách ngoại lệ — khách luôn không có trên Smile (.xlsx, không bắt buộc)",
+        "Bổ sung thêm người ngoại lệ mới (.xlsx, không bắt buộc)",
         type=['xlsx'], key="recon_exception",
-        help="Có thể dùng ngay file Trang lưu trú, thêm các dòng chỉ ghi Số hộ chiếu "
-             "(để trống Họ tên) cho từng khách ngoại lệ. Nhóm 'thừa' bên dưới sẽ được "
-             "tách ra: ai nằm trong danh sách này (bình thường) và ai thật sự cần kiểm tra.")
+        help="Chỉ cần tải file này nếu có người ngoại lệ MỚI chưa có trong danh sách có sẵn ở trên "
+             "(vd nhân viên mới). Có thể dùng ngay file Trang lưu trú, thêm các dòng chỉ ghi Số hộ "
+             "chiếu (để trống Họ tên) cho từng khách bình thường — hệ thống sẽ tự loại các dòng đó ra, "
+             "chỉ lấy những dòng còn đầy đủ Họ tên làm người ngoại lệ mới.")
 
     today_str = st.text_input("📅 Ngày xuất file (hôm nay)", value=datetime.date.today().strftime('%d/%m/%Y'),
                               help="Dùng để loại bỏ: khách arrival hôm nay (Smile) và khách ngày đi dự kiến hôm nay (Lưu trú)")
