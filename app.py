@@ -1236,7 +1236,7 @@ DEFAULT_EXCEPTION_LIST = [
     {'Họ tên': 'TURAN UGUR', 'Số hộ chiếu': 'U24453636', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '516'},
     {'Họ tên': 'TAYFUR ANIL (ENT tóc xoăn)', 'Số hộ chiếu': 'U29232763', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '512'},
     {'Họ tên': 'BERBER CIHAN ( Bếp trưởng)', 'Số hộ chiếu': 'U37721919', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '518'},
-    {'Họ tên': 'KOTOV IHOR (guide)', 'Số hộ chiếu': 'FU052955', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '532'},
+    {'Họ tên': 'KOTOV IHOR (guide)', 'Số hộ chiếu': 'FU052955', 'Quốc tịch': 'U-crai-na', 'Số phòng': '532'},
     {'Họ tên': 'ZAKHARCHENKO VALENTYNA (guide)', 'Số hộ chiếu': 'UA034939', 'Quốc tịch': 'U-crai-na', 'Số phòng': '522'},
     {'Họ tên': 'SUCHSHIK ALEXANDR (GIẢI TRÍ ĐK KÉ 508)', 'Số hộ chiếu': 'N11823260', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '508'},
     {'Họ tên': 'DEMIR UGUR (AGM)', 'Số hộ chiếu': 'U23530522', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': 'PHONG NOI BO'},
