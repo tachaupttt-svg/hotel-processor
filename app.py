@@ -2643,7 +2643,7 @@ if st.session_state.menu == "recon_person":
                 st.download_button("⬇️ Tải danh sách cần kiểm tra (CSV)", _csv,
                                    file_name="can_kiem_tra.csv", mime="text/csv", key="dl_thua_unknown")
             else:
-                st.success("✅ Không có ai ngoài danh sách ngoại lệ — toàn bộ chênh lệch đều đã biết trước.")
+                st.success("✅ Không có ai ngoài danh sách ngoại lệ — chênh lệch này bình thường, không cần xử lý gì thêm.")
 
             if n_known > 0:
                 with st.expander(f"✅ {n_known} người nằm trong danh sách ngoại lệ (bình thường, không phải lỗi)"):
