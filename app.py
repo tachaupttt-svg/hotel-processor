@@ -1251,7 +1251,7 @@ DEFAULT_EXCEPTION_LIST = [
     {'Họ tên': 'CICEK ESAT', 'Số hộ chiếu': 'U30474111', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '508'},
 ]
 DEFAULT_EXCEPTION_INFO = {
-    _norm_pp(x['Số hộ chiếu']): {'Họ tên': x['Họ tên'], 'Số phòng': x['Số phòng']}
+    _norm_pp(x['Số hộ chiếu']): {'Họ tên': x['Họ tên'], 'Số phòng': x['Số phòng'], 'Quốc tịch': x['Quốc tịch']}
     for x in DEFAULT_EXCEPTION_LIST
 }
 
@@ -1266,7 +1266,7 @@ def _parse_exception_list(exception_bytes):
     chỉ-liệt-kê-số-hộ-chiếu đó. Nếu file không có khối 'đầy đủ Họ tên' nào
     (toàn bộ chỉ là số hộ chiếu) thì coi luôn danh sách đó là ngoại lệ (không
     có tên/phòng kèm theo).
-    Trả về dict {số hộ chiếu đã chuẩn hóa: {'Họ tên':.., 'Số phòng':..}}."""
+    Trả về dict {số hộ chiếu đã chuẩn hóa: {'Họ tên':.., 'Số phòng':.., 'Quốc tịch':..}}."""
     dfe = pd.read_excel(io.BytesIO(exception_bytes), header=9)
     if 'Số hộ chiếu' not in dfe.columns:
         dfe = pd.read_excel(io.BytesIO(exception_bytes), header=0)
@@ -1274,12 +1274,12 @@ def _parse_exception_list(exception_bytes):
         raise ValueError("File danh sách ngoại lệ không có cột 'Số hộ chiếu'.")
     dfe = dfe.dropna(subset=['Số hộ chiếu'])
     if 'Họ tên' not in dfe.columns:
-        return {pp: {'Họ tên': '', 'Số phòng': ''}
+        return {pp: {'Họ tên': '', 'Số phòng': '', 'Quốc tịch': ''}
                 for pp in dfe['Số hộ chiếu'].apply(_norm_pp) if pp}
     named = dfe[dfe['Họ tên'].notna()]
     bare = dfe[dfe['Họ tên'].isna()]
     if named.empty:
-        return {pp: {'Họ tên': '', 'Số phòng': ''}
+        return {pp: {'Họ tên': '', 'Số phòng': '', 'Quốc tịch': ''}
                 for pp in bare['Số hộ chiếu'].apply(_norm_pp) if pp}
     bare_pp = set(bare['Số hộ chiếu'].apply(_norm_pp)) - {''}
     info = {}
@@ -1289,6 +1289,7 @@ def _parse_exception_list(exception_bytes):
             info[pp] = {
                 'Họ tên': str(row['Họ tên']).strip(),
                 'Số phòng': str(row['Số phòng']).strip() if 'Số phòng' in named.columns and pd.notna(row.get('Số phòng')) else '',
+                'Quốc tịch': str(row['QT']).strip() if 'QT' in named.columns and pd.notna(row.get('QT')) else '',
             }
     return info
 
@@ -1382,11 +1383,54 @@ def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
              'Số phòng': exception_info[pp].get('Số phòng', '')}
             for pp in gone_pp
         ], columns=['Họ tên','Số hộ chiếu','Số phòng'])
+        # Khách ngoại lệ ĐANG có mặt trên Lưu trú nhưng Họ tên/Quốc tịch ghi
+        # nhận hiện tại lệch so với dữ liệu đã lưu (nghi ngờ nhập sai một bên).
+        def _norm_name(n): return ' '.join(str(n).strip().upper().split())
+        luutru_by_pp = luutru_f.drop_duplicates('pp').set_index('pp')
+        mismatch_rows = []
+        for pp in sorted(exc_pp & luutru_pp, key=_sortkey):
+            cur = luutru_by_pp.loc[pp]
+            cur_name = _norm_name(cur['Họ tên'])
+            cur_nat = str(cur['QT']).strip() if 'QT' in luutru_by_pp.columns and pd.notna(cur.get('QT')) else ''
+            exp = exception_info[pp]
+            exp_name = _norm_name(exp.get('Họ tên', ''))
+            exp_nat = str(exp.get('Quốc tịch', '')).strip()
+            diffs = []
+            if exp_name and cur_name and exp_name != cur_name:
+                diffs.append(f"Họ tên: đã lưu '{exp.get('Họ tên')}' ↔ hiện tại '{cur['Họ tên']}'")
+            if exp_nat and cur_nat and exp_nat != cur_nat:
+                diffs.append(f"Quốc tịch: đã lưu '{exp_nat}' ↔ hiện tại '{cur_nat}'")
+            if diffs:
+                mismatch_rows.append({'Số hộ chiếu': pp, 'Chi tiết lệch': '; '.join(diffs)})
+        exception_mismatch = pd.DataFrame(mismatch_rows, columns=['Số hộ chiếu','Chi tiết lệch'])
+
+        # Nghi số hộ chiếu ngoại lệ bị nhập sai: người đang bị báo "cần kiểm
+        # tra" (không nhận diện được là ngoại lệ qua số hộ chiếu) nhưng TRÙNG
+        # TÊN với một người trong danh sách ngoại lệ — có thể số hộ chiếu trên
+        # Lưu trú bị gõ sai so với số đã lưu.
+        exception_name_index = {}
+        for pp, info in exception_info.items():
+            nm = _norm_name(info.get('Họ tên', ''))
+            if nm:
+                exception_name_index.setdefault(nm, []).append(pp)
+        suspect_rows = []
+        for _, row in thua_unknown.iterrows():
+            nm = _norm_name(row['Họ tên'])
+            for exp_pp in exception_name_index.get(nm, []):
+                suspect_rows.append({
+                    'Họ tên': row['Họ tên'],
+                    'Số hộ chiếu trên Lưu trú (hiện tại)': row['Số hộ chiếu'],
+                    'Số hộ chiếu đã lưu (ngoại lệ)': exp_pp,
+                })
+        exception_suspect = pd.DataFrame(suspect_rows,
+            columns=['Họ tên','Số hộ chiếu trên Lưu trú (hiện tại)','Số hộ chiếu đã lưu (ngoại lệ)'])
     else:
         thua_known = thua.iloc[0:0].copy()
         thua_unknown = thua.copy()
         exception_still_here = pd.DataFrame(columns=['Họ tên','Số hộ chiếu','Số phòng'])
         exception_gone = pd.DataFrame(columns=['Họ tên','Số hộ chiếu','Số phòng'])
+        exception_mismatch = pd.DataFrame(columns=['Số hộ chiếu','Chi tiết lệch'])
+        exception_suspect = pd.DataFrame(columns=['Họ tên','Số hộ chiếu trên Lưu trú (hiện tại)','Số hộ chiếu đã lưu (ngoại lệ)'])
 
     return {
         'smile_total': len(smile), 'smile_filtered': len(smile_f),
@@ -1398,6 +1442,7 @@ def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
         'exception_total': len(exc_pp),
         'thua_known': thua_known, 'thua_unknown': thua_unknown,
         'exception_still_here': exception_still_here, 'exception_gone': exception_gone,
+        'exception_mismatch': exception_mismatch, 'exception_suspect': exception_suspect,
     }
 
 
@@ -2602,6 +2647,18 @@ if st.session_state.menu == "recon_person":
                     st.dataframe(r['thua_known'], use_container_width=True, hide_index=True)
 
         if has_exception:
+            n_mismatch = len(r['exception_mismatch'])
+            if n_mismatch > 0:
+                st.warning(f"⚠️ {n_mismatch} khách ngoại lệ có Họ tên/Quốc tịch trên Trang quản lý người nước ngoài "
+                           f"KHÁC với dữ liệu đã lưu (kiểm tra xem bên nào bị nhập sai):")
+                st.dataframe(r['exception_mismatch'], use_container_width=True, hide_index=True)
+
+            n_suspect = len(r['exception_suspect'])
+            if n_suspect > 0:
+                st.warning(f"⚠️ {n_suspect} người bị báo \"cần kiểm tra\" nhưng TRÙNG TÊN với khách ngoại lệ đã lưu — "
+                           f"nghi số hộ chiếu trên Trang quản lý người nước ngoài bị nhập sai:")
+                st.dataframe(r['exception_suspect'], use_container_width=True, hide_index=True)
+
             n_gone = len(r['exception_gone'])
             if n_gone > 0:
                 st.info(f"ℹ️ {n_gone} người trong danh sách ngoại lệ KHÔNG còn trên Trang quản lý người nước ngoài "
