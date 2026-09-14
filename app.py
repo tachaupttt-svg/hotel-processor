@@ -1243,7 +1243,7 @@ DEFAULT_EXCEPTION_LIST = [
     {'Họ tên': 'MOMPIE VAZQUEZ OLEXIS (entertaiment)', 'Số hộ chiếu': 'L768690', 'Quốc tịch': 'Cu Ba', 'Số phòng': 'P NOI BO'},
     {'Họ tên': 'OZDEMIR FERHAT', 'Số hộ chiếu': 'U26515178', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': 'Phòng nội bộ'},
     {'Họ tên': 'MAYSTRENKO VICTORIYA (guide)', 'Số hộ chiếu': '766938629', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '522'},
-    {'Họ tên': 'SERGEEVA ANASTASIIA GRM', 'Số hộ chiếu': '551237982', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '520'},
+    {'Họ tên': 'SERGEEVA ANASTASIIA (GRM)', 'Số hộ chiếu': '551237982', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '520'},
     {'Họ tên': 'KASABIAN KARINA', 'Số hộ chiếu': '772552439', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': 'PHONG NOI BO'},
     {'Họ tên': 'OLMEZ MURAT', 'Số hộ chiếu': 'U36308112', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': 'PHONG NOI BO'},
     {'Họ tên': 'DEGIRMENCI ZIYA DENIZ', 'Số hộ chiếu': 'U26394094', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '536'},
@@ -1385,7 +1385,10 @@ def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
         ], columns=['Họ tên','Số hộ chiếu','Số phòng'])
         # Khách ngoại lệ ĐANG có mặt trên Lưu trú nhưng Họ tên/Quốc tịch ghi
         # nhận hiện tại lệch so với dữ liệu đã lưu (nghi ngờ nhập sai một bên).
-        def _norm_name(n): return ' '.join(str(n).strip().upper().split())
+        # Chỉ so khớp phần TÊN thật — bỏ phần ghi chú chức vụ trong ngoặc
+        # (vd "(guide)", "(ENT ĐK KÉ 516)") vì đó chỉ để dễ nhận dạng, không
+        # phải một phần tên trên giấy tờ.
+        def _norm_name(n): return ' '.join(_re.sub(r'\(.*?\)', '', str(n)).strip().upper().split())
         luutru_by_pp = luutru_f.drop_duplicates('pp').set_index('pp')
         mismatch_rows = []
         for pp in sorted(exc_pp & luutru_pp, key=_sortkey):
