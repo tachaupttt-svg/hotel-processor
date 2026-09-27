@@ -1332,6 +1332,11 @@ def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
     luutru_f = df2[df2['ddk'].dt.date != today.date()].copy()
 
     smile_pp = set(smile_f['pp'])
+    # Toàn bộ số hộ chiếu có trên file Smile (KHÔNG lọc theo ngày): dùng để trả
+    # lời câu hỏi "người này có trên Smile hay không". Nếu dùng smile_pp (đã bỏ
+    # khách đến/đi hôm nay) thì khách check-in hôm nay — vốn vẫn nằm trên Smile
+    # — sẽ bị báo nhầm là "có lưu trú nhưng không có trên Smile".
+    smile_pp_all = set(smile['pp'])
     luutru_pp = set(luutru_f['pp'])
 
     # Đối chiếu người
@@ -1339,7 +1344,7 @@ def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
     chua_dk.columns = ['Họ tên','Số hộ chiếu','Quốc tịch','Số phòng','Ngày đến']
     chua_dk['Ngày đến'] = chua_dk['Ngày đến'].dt.strftime('%d/%m/%Y')
 
-    thua = luutru_f[~luutru_f['pp'].isin(smile_pp)].copy()
+    thua = luutru_f[~luutru_f['pp'].isin(smile_pp_all)].copy()
     # Giai đoạn lưu trú: Ngày đến → Ngày đi dự kiến
     _dd = pd.to_datetime(thua['Ngày đến '], format='%d/%m/%Y', errors='coerce') if 'Ngày đến ' in thua else pd.Series([pd.NaT]*len(thua))
     thua['_luutru'] = (_dd.dt.strftime('%d/%m/%Y').fillna('?') + ' → ' +
