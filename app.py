@@ -1249,6 +1249,7 @@ DEFAULT_EXCEPTION_LIST = [
     {'Họ tên': 'DEGIRMENCI ZIYA DENIZ', 'Số hộ chiếu': 'U26394094', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '536'},
     {'Họ tên': 'GOK ORHAN', 'Số hộ chiếu': 'U40570415', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '536'},
     {'Họ tên': 'CICEK ESAT', 'Số hộ chiếu': 'U30474111', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '508'},
+    {'Họ tên': 'ERSOZ FURKAN', 'Số hộ chiếu': 'U26395931', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '514'},
 ]
 DEFAULT_EXCEPTION_INFO = {
     _norm_pp(x['Số hộ chiếu']): {'Họ tên': x['Họ tên'], 'Số phòng': x['Số phòng'], 'Quốc tịch': x['Quốc tịch']}
