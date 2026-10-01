@@ -1651,6 +1651,46 @@ st.markdown("""
     .login-box .lb-logo {font-size: 2.4rem;}
     .login-box h2 {color: #1a1a1a; font-size: 1.3rem; font-weight: 700; margin: 0.6rem 0 0.25rem; letter-spacing: -0.02em;}
     .login-box p {color: #9b9b9b; font-size: 0.85rem; margin: 0;}
+
+    /* ── Sơ đồ nhánh cho Bộ đếm khách & phòng ─────────────────────────── */
+    .ctree-row {display: flex; gap: 1.2rem; flex-wrap: wrap; margin: 0.4rem 0 0.2rem;}
+    .ctree-col {flex: 1 1 260px; min-width: 240px;}
+    .ctree, .ctree ul, .ctree li {list-style: none; margin: 0; padding: 0; position: relative;}
+    .ctree {text-align: center;}
+    .ctree, .ctree ul {display: table; width: 100%;}
+    .ctree ul {table-layout: fixed;}
+    .ctree li {display: table-cell; padding: 1.6em 0.4em 0 0.4em; vertical-align: top;}
+    .ctree li::before {
+        outline: solid 1px #d7d7da; content: ""; left: 0; position: absolute; right: 0; top: 0;
+    }
+    .ctree li:first-child::before {left: 50%; border-radius: 6px 0 0 0;}
+    .ctree li:last-child::before {right: 50%; border-radius: 0 6px 0 0;}
+    .ctree li:only-child::before {display: none;}
+    .ctree ul::before {
+        content: ""; position: absolute; top: -1em; left: 50%;
+        border-left: solid 1px #d7d7da; width: 0; height: 1em;
+    }
+    .ctree > li::before {display: none !important;}
+    .tnode {
+        display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+        min-width: 86px; padding: 0.55rem 0.7rem; border-radius: 10px;
+        background: #ffffff; border: 1px solid #ececec; box-shadow: 0 1px 4px rgba(31,52,96,0.05);
+        position: relative;
+    }
+    .tnode::before {
+        outline: solid 1px #d7d7da; content: ""; height: 1em; left: 50%;
+        position: absolute; top: -1em; width: 0;
+    }
+    .ctree > li > .tnode::before {display: none;}
+    .tnode-icon {font-size: 1.05rem; line-height: 1; margin-bottom: 0.3rem;}
+    .tnode-val {font-weight: 700; font-size: 1.25rem; color: #1a1a1a; line-height: 1.1;}
+    .tnode-label {font-size: 0.72rem; color: #9b9b9b; margin-top: 0.15rem; white-space: nowrap;}
+    .tnode-root {border-color: #d8d8d8; box-shadow: 0 2px 8px rgba(31,52,96,0.08);}
+    .tnode-nn {background: #eef5ff; border-color: #d7e8fb;}
+    .tnode-nn .tnode-val {color: #1b63c4;}
+    .tnode-vn {background: #fff1ef; border-color: #fbdbd5;}
+    .tnode-vn .tnode-val {color: #c8372a;}
+    .ctree-title {font-size: 0.85rem; font-weight: 650; color: #6b6b6b; margin-bottom: 0.3rem;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -3038,6 +3078,26 @@ if st.session_state.menu == "recon_room":
         st.button("←  Quay lại", key="back_recon_room_bottom", on_click=go_menu, args=("recon",))
 
 
+def _tnode(icon, label, value, cls=""):
+    return (f'<div class="tnode {cls}"><div class="tnode-icon">{icon}</div>'
+            f'<div class="tnode-val">{value}</div><div class="tnode-label">{label}</div></div>')
+
+def _ctree(title, root_icon, root_label, root_val, nn_val, vn_val):
+    """Sơ đồ nhánh: 1 gốc (vd Tổng khách) tách ra 2 nhánh con Nước ngoài / Việt Nam."""
+    return f'''
+    <div class="ctree-col">
+      <div class="ctree-title">{title}</div>
+      <ul class="ctree">
+        <li>
+          {_tnode(root_icon, root_label, root_val, "tnode-root")}
+          <ul>
+            <li>{_tnode("🌏", "Nước ngoài", nn_val, "tnode-nn")}</li>
+            <li>{_tnode("🇻🇳", "Việt Nam", vn_val, "tnode-vn")}</li>
+          </ul>
+        </li>
+      </ul>
+    </div>'''
+
 # ── Bộ đếm khách & phòng (ARR / DEP / INHOUSE) ────────────────────────────
 if st.session_state.menu == "counter":
     st.button("←  Quay lại", key="back_counter", on_click=go_menu, args=("recon",))
@@ -3083,14 +3143,11 @@ if st.session_state.menu == "counter":
                 continue
             _tag = " (đếm theo tên)" if r.get('by_name') else ""
             st.markdown(f"### {key}{_tag}")
-            m1, m2, m3 = st.columns(3)
-            m1.metric("👤 Tổng khách", r['guests_total'])
-            m2.metric("🌏 Khách nước ngoài", r['guests_nn'])
-            m3.metric("🇻🇳 Khách Việt Nam", r['guests_vn'])
-            p1, p2, p3 = st.columns(3)
-            p1.metric("🚪 Tổng phòng", r['rooms_total'])
-            p2.metric("🌏 Phòng nước ngoài", r['rooms_nn'])
-            p3.metric("🇻🇳 Phòng Việt Nam", r['rooms_vn'])
+            _tree_html = '<div class="ctree-row">' + \
+                _ctree("👤 Khách", "👤", "Tổng khách", r['guests_total'], r['guests_nn'], r['guests_vn']) + \
+                _ctree("🚪 Phòng", "🚪", "Tổng phòng", r['rooms_total'], r['rooms_nn'], r['rooms_vn']) + \
+                '</div>'
+            st.markdown(_tree_html, unsafe_allow_html=True)
             if r['rooms_mixed'] > 0:
                 st.info(f"ℹ️ Có **{r['rooms_mixed']}** phòng hỗn hợp (vừa có khách nước ngoài "
                         f"vừa có khách Việt Nam) — được tính vào cả hai loại phòng.")
