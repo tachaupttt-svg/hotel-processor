@@ -567,16 +567,6 @@ def process_xlsx(xlsx_bytes, rate):
                 ws.cell(er, port_idx).value = 'Cảng hàng không quốc tế Cam Ranh'
     return wb, conv
 
-def split_wb(wb, loai):
-    wb2 = load_workbook(io.BytesIO(wb_to_bytes(wb)))
-    ws2 = wb2.active
-    lc = next(c.column for c in ws2[1] if c.value=='LOẠI KHÁCH')
-    dels = [row[0].row for row in ws2.iter_rows(min_row=2,max_row=ws2.max_row)
-            if row[lc-1].value != loai]
-    for r in reversed(dels): ws2.delete_rows(r)
-    for i, row in enumerate(ws2.iter_rows(min_row=2,max_row=ws2.max_row),1): row[0].value=i
-    return wb2
-
 def _norm_room_str(v):
     s = str(v).strip() if v is not None else ''
     if s.endswith('.0'): s = s[:-2]
@@ -2334,10 +2324,6 @@ if st.session_state.menu == "daily":
                         df_intl = df[df['LOẠI KHÁCH']=='Quốc tế'].reset_index(drop=True)
                         df_vn   = df[df['LOẠI KHÁCH']=='Việt Nam'].reset_index(drop=True)
 
-                        progress.progress(30, text="Tách file Quốc tế / Việt Nam...")
-                        wb_intl = split_wb(wb, 'Quốc tế')
-                        wb_vn   = split_wb(wb, 'Việt Nam')
-
                         progress.progress(45, text="Điền mẫu KBTT...")
                         wb_kbtt, visa_unmatched = build_kbtt(df_intl, visa_map=visa_map)
 
@@ -2352,14 +2338,11 @@ if st.session_state.menu == "daily":
                         else:
                             for pi, sub in enumerate(conv_parts, 1):
                                 zf.writestr(f'converted_{date_str}_phan{pi}.xlsx', wb_to_bytes(sub))
-                        zf.writestr(f'KhachQuocTe_{date_str}.xlsx',    wb_to_bytes(wb_intl))
-                        zf.writestr(f'KhachVietNam_{date_str}.xlsx',   wb_to_bytes(wb_vn))
                         zf.writestr(f'ho_so_KBTT_NNN_{date_str}.xlsx', wb_to_bytes(wb_kbtt))
                         zf.writestr(f'thong_bao_luu_tru_VNM_{date_str}.xlsx', wb_to_bytes(wb_vnm))
                         _conv_label = ("📄 converted (file chung)" if len(conv_parts) == 1
                                        else f"📄 converted ({len(conv_parts)} phần, tách theo phòng ≤200)")
-                        files_made += [_conv_label, "🌍 KhachQuocTe", "🇻🇳 KhachVietNam",
-                                       "📝 KBTT NNN", "📑 Thông báo lưu trú VNM"]
+                        files_made += [_conv_label, "📝 KBTT NNN", "📑 Thông báo lưu trú VNM"]
 
                     # ── Xử lý file ĐK14 (độc lập, chỉ cần file XLS) ──
                     dk14_bytes = None
