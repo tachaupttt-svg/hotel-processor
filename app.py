@@ -984,9 +984,25 @@ def _fix_date(v):
     except Exception:
         return None
 
-def build_regcards(xlsx_bytes, only_main=True):
+def _norm_conf(v):
+    if pd.isna(v): return ''
+    s = str(v).strip()
+    if s.endswith('.0'): s = s[:-2]
+    return s
+
+def list_confs_in_xlsx(xlsx_bytes):
+    """Danh sách mã Conf# (Booking) duy nhất trong file Arrival (để chọn xử lý riêng)."""
+    df = pd.read_excel(io.BytesIO(xlsx_bytes))
+    if 'Conf#' not in df.columns:
+        return []
+    confs = {_norm_conf(v) for v in df['Conf#'].dropna()}
+    confs.discard('')
+    return sorted(confs)
+
+def build_regcards(xlsx_bytes, only_main=True, selected_confs=None):
     """Tạo PDF regcard hàng loạt, gộp theo Conf# (đoàn nhiều phòng → 1 regcard,
-    các số phòng gộp chung vào ô Room No)."""
+    các số phòng gộp chung vào ô Room No). selected_confs: nếu có, chỉ tạo cho
+    các mã Conf# nằm trong danh sách này (để trống = tất cả)."""
     df = pd.read_excel(io.BytesIO(xlsx_bytes))
     # Chuẩn hóa ngày (sửa lỗi Excel đảo dd/mm↔mm/dd với ngày ≤12 từ Smile export)
     for _dc in ('Arrival', 'Departure'):
@@ -1019,6 +1035,9 @@ def build_regcards(xlsx_bytes, only_main=True):
 
     df = df.copy()
     df['_conf_ff'] = df['Conf#'].ffill()
+    if selected_confs:
+        _keep_confs = set(selected_confs)
+        df = df[df['_conf_ff'].apply(_norm_conf).isin(_keep_confs)].reset_index(drop=True)
 
     # ── Tách các booking ĐOÀN (có mã Group) để dùng mẫu Registration Card for Group ──
     # KHÔNG ffill cột Group — chỉ dòng có sẵn mã Group mới thuộc đoàn.
@@ -2078,7 +2097,7 @@ def go_menu(name):
 # ── Menu landing screen ───────────────────────────────────────────────────
 
 # ── Tạo file ARR từ file Arrival (Book) Smile ──────────────────────────────
-def build_arr(book_bytes):
+def build_arr(book_bytes, selected_confs=None):
     """Tạo file ARR định dạng in chuẩn (theo file mẫu arr_09_07):
     - Nhóm theo Conf#: mỗi booking 1 dòng cao 126, Conf# chữ to 45 đậm nền xanh,
       số phòng (J) chữ 40 đậm, viền thin toàn bộ, căn giữa, Times New Roman.
@@ -2090,6 +2109,8 @@ def build_arr(book_bytes):
     - Conf# trùng nhau = 1 booking; J = số phòng UNIQUE (loại phòng ảo 9000-9999).
     - CÀ THẺ: Company AGODA/EXPEDIA/CTRIP hoặc Notice chứa "TACC" · THU TIỀN: BOOKING.COM
       hoặc Notice chứa "RC ... C/I" (loại "RC TA", "TACC", "GUEST PAID") · LUNCH IN: "LUNCH".
+
+    selected_confs: nếu có, chỉ lấy các mã Conf# nằm trong danh sách này (để trống = tất cả).
     """
     import re as _re2
     import numpy as _np
@@ -2107,6 +2128,9 @@ def build_arr(book_bytes):
         raise ValueError("File không đúng cấu trúc Arrival Smile (thiếu cột). Vui lòng kiểm tra lại file.")
     data['conf'] = data[5].ffill()
     data = data[data['conf'].notna()]
+    if selected_confs:
+        _keep_confs = set(selected_confs)
+        data = data[data['conf'].apply(_norm_conf).isin(_keep_confs)]
     if len(data) == 0:
         raise ValueError("File không có dữ liệu booking nào.")
 
@@ -2460,6 +2484,17 @@ if st.session_state.menu == "regcard":
 
     rc_file = st.file_uploader("File Excel dữ liệu booking (.xlsx)", type=['xlsx'], key="rc_xlsx")
 
+    selected_confs = []
+    if rc_file is not None:
+        try:
+            _confs_available = list_confs_in_xlsx(rc_file.getvalue())
+        except Exception:
+            _confs_available = []
+        if _confs_available:
+            selected_confs = st.multiselect(
+                "🔖 Chọn mã Booking cần xử lý (để trống = xử lý tất cả booking trong file)",
+                options=_confs_available, key="rc_confs")
+
     only_main = st.checkbox("Chỉ tạo cho khách chính (có mã Conf#)", value=True,
                             help="Bỏ chọn để tạo regcard cho tất cả khách, kể cả khách đi cùng phòng")
 
@@ -2469,12 +2504,12 @@ if st.session_state.menu == "regcard":
         with st.spinner("Đang tạo Regcard PDF và file ARR..."):
             try:
                 rc_bytes = rc_file.read()
-                pdf_data, count = build_regcards(rc_bytes, only_main=only_main)
+                pdf_data, count = build_regcards(rc_bytes, only_main=only_main, selected_confs=selected_confs)
 
                 # Tạo file ARR từ cùng file đầu vào (lỗi ARR không làm hỏng PDF)
                 arr_bytes, arr_stats, arr_err = None, None, None
                 try:
-                    wb_arr, arr_stats = build_arr(rc_bytes)
+                    wb_arr, arr_stats = build_arr(rc_bytes, selected_confs=selected_confs)
                     arr_bytes = wb_to_bytes(wb_arr)
                 except Exception as _e:
                     arr_err = str(_e)
