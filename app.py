@@ -1322,6 +1322,31 @@ def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
     # Lọc: bỏ ngày đi dự kiến = hôm nay
     luutru_f = df2[df2['ddk'].dt.date != today.date()].copy()
 
+    # ── Cảnh báo hạn visa (Thời hạn được phép tạm trú tại Việt Nam) ──
+    # Xét TOÀN BỘ khách trong file lưu trú (không lọc theo ngày đi dự kiến) —
+    # cảnh báo hạn visa độc lập với việc đối chiếu Smile.
+    _visa_col = next((c for c in df2.columns if 'thời hạn' in str(c).lower()
+                       and 'tạm trú' in str(c).lower() and 'việt nam' in str(c).lower()), None)
+    if _visa_col:
+        _visa_exp = pd.to_datetime(df2[_visa_col], format='%d/%m/%Y', errors='coerce')
+        _days_left = (_visa_exp - pd.Timestamp(today.date())).dt.days
+        _qt2 = df2['QT'] if 'QT' in df2.columns else ''
+        _visa_df = pd.DataFrame({
+            'Họ tên': df2['Họ tên'].values, 'Số hộ chiếu': df2['pp'].values,
+            'Quốc tịch': _qt2.values if hasattr(_qt2, 'values') else _qt2,
+            'Số phòng': df2['room'].values,
+            'Hạn visa': _visa_exp.dt.strftime('%d/%m/%Y').values,
+            '_days_left': _days_left.values,
+        })
+        visa_expired = (_visa_df[_visa_df['_days_left'] < 0]
+                         .drop(columns='_days_left').sort_values('Hạn visa').reset_index(drop=True))
+        _soon = _visa_df[(_visa_df['_days_left'] >= 0) & (_visa_df['_days_left'] <= 5)].copy()
+        _soon['Còn lại'] = _soon['_days_left'].map(lambda d: f"{int(d)} ngày")
+        visa_expiring = _soon.drop(columns='_days_left').sort_values('Hạn visa').reset_index(drop=True)
+    else:
+        visa_expired = pd.DataFrame(columns=['Họ tên','Số hộ chiếu','Quốc tịch','Số phòng','Hạn visa'])
+        visa_expiring = pd.DataFrame(columns=['Họ tên','Số hộ chiếu','Quốc tịch','Số phòng','Hạn visa','Còn lại'])
+
     smile_pp = set(smile_f['pp'])
     # Toàn bộ số hộ chiếu có trên file Smile (KHÔNG lọc theo ngày): dùng để trả
     # lời câu hỏi "người này có trên Smile hay không". Nếu dùng smile_pp (đã bỏ
@@ -1442,6 +1467,7 @@ def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
         'thua_known': thua_known, 'thua_unknown': thua_unknown,
         'exception_still_here': exception_still_here, 'exception_gone': exception_gone,
         'exception_mismatch': exception_mismatch, 'exception_suspect': exception_suspect,
+        'visa_expired': visa_expired, 'visa_expiring': visa_expiring,
     }
 
 
@@ -2630,6 +2656,17 @@ if st.session_state.menu == "recon_person":
         c1, c2 = st.columns(2)
         c1.metric("Smile (sau lọc)", r['smile_filtered'], f"từ {r['smile_total']} (bỏ VNM + arrival/departure hôm nay)")
         c2.metric("Lưu trú (sau lọc)", r['luutru_filtered'], f"từ {r['luutru_total']} (bỏ đi dự kiến hôm nay)")
+
+        n_visa_expired = len(r['visa_expired']); n_visa_expiring = len(r['visa_expiring'])
+        if n_visa_expired > 0 or n_visa_expiring > 0:
+            st.divider()
+            st.markdown("### ⏰ Cảnh báo hạn visa (thời hạn tạm trú tại Việt Nam)")
+            if n_visa_expired > 0:
+                st.error(f"🔴 {n_visa_expired} khách ĐÃ HẾT HẠN tạm trú:")
+                st.dataframe(r['visa_expired'], use_container_width=True, hide_index=True)
+            if n_visa_expiring > 0:
+                st.warning(f"🟠 {n_visa_expiring} khách SẮP HẾT HẠN tạm trú (còn ≤5 ngày):")
+                st.dataframe(r['visa_expiring'], use_container_width=True, hide_index=True)
 
         st.divider()
         st.markdown("### 👤 Kết quả đối chiếu người (theo số hộ chiếu)")
