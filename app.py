@@ -1384,6 +1384,12 @@ def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
     # — sẽ bị báo nhầm là "có lưu trú nhưng không có trên Smile".
     smile_pp_all = set(smile['pp'])
     luutru_pp = set(luutru_f['pp'])
+    # Toàn bộ số hộ chiếu có trên file Lưu trú (KHÔNG lọc theo ngày đi dự
+    # kiến): dùng để kiểm tra "người ngoại lệ này có còn đăng ký trên Lưu trú
+    # hay không". Nếu dùng luutru_pp (đã bỏ khách có ngày đi dự kiến = hôm
+    # nay) thì người ngoại lệ dự kiến rời đi đúng hôm nay — vốn vẫn đang có
+    # mặt trong file — sẽ bị báo nhầm là "KHÔNG còn trên Trang lưu trú".
+    luutru_pp_all = set(df2['pp'])
 
     # Đối chiếu người
     chua_dk = smile_f[~smile_f['pp'].isin(luutru_pp)][['name','pp','NAT','room','Arrival']].copy()
@@ -1424,11 +1430,11 @@ def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
     if exc_pp:
         thua_known = thua[thua['Số hộ chiếu'].isin(exc_pp)].reset_index(drop=True)
         thua_unknown = thua[~thua['Số hộ chiếu'].isin(exc_pp)].reset_index(drop=True)
-        exception_still_here = (luutru_f[luutru_f['pp'].isin(exc_pp)]
+        exception_still_here = (df2[df2['pp'].isin(exc_pp)]
                                  .drop_duplicates('pp')[['Họ tên','pp','room']].copy())
         exception_still_here.columns = ['Họ tên','Số hộ chiếu','Số phòng']
         exception_still_here = exception_still_here.sort_values('Họ tên').reset_index(drop=True)
-        gone_pp = sorted(exc_pp - luutru_pp, key=_sortkey)
+        gone_pp = sorted(exc_pp - luutru_pp_all, key=_sortkey)
         exception_gone = pd.DataFrame([
             {'Họ tên': exception_info[pp].get('Họ tên', ''), 'Số hộ chiếu': pp,
              'Số phòng': exception_info[pp].get('Số phòng', '')}
@@ -1440,9 +1446,9 @@ def reconcile(smile_bytes, luutru_bytes, today, exception_bytes=None):
         # (vd "(guide)", "(ENT ĐK KÉ 516)") vì đó chỉ để dễ nhận dạng, không
         # phải một phần tên trên giấy tờ.
         def _norm_name(n): return ' '.join(_re.sub(r'\(.*?\)', '', str(n)).strip().upper().split())
-        luutru_by_pp = luutru_f.drop_duplicates('pp').set_index('pp')
+        luutru_by_pp = df2.drop_duplicates('pp').set_index('pp')
         mismatch_rows = []
-        for pp in sorted(exc_pp & luutru_pp, key=_sortkey):
+        for pp in sorted(exc_pp & luutru_pp_all, key=_sortkey):
             cur = luutru_by_pp.loc[pp]
             cur_name = _norm_name(cur['Họ tên'])
             cur_nat = str(cur['QT']).strip() if 'QT' in luutru_by_pp.columns and pd.notna(cur.get('QT')) else ''
