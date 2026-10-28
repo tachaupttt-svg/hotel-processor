@@ -1844,12 +1844,12 @@ st.markdown(f"""
     }}
     [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{gap: 0.35rem;}}
     .sb-logo {{
-        color: {_C['text']} !important; font-size: 1.1rem; font-weight: 700;
-        padding: 0.3rem 0 0.2rem; white-space: nowrap;
+        color: {_C['text']} !important; font-size: 1.55rem; font-weight: 750;
+        padding: 0.6rem 0 0.3rem; text-align: center;
     }}
     .sb-tagline {{
-        color: {_C['muted']} !important; font-size: 0.78rem; font-weight: 500;
-        padding: 0 0 0.9rem; white-space: nowrap;
+        color: {_C['muted']} !important; font-size: 0.8rem; font-weight: 500;
+        padding: 0 0 1.1rem; text-align: center;
     }}
     .sb-divider {{border: none; border-top: 1px solid {_C['border']}; margin: 0.6rem 0;}}
     [data-testid="stSidebar"] .stButton button {{
