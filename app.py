@@ -1585,14 +1585,16 @@ if _dm:
               btn_bg="#eceef1", btn_text="#14161b", btn_hover="#d7d9de",
               input_bg="#1c1f26", nn_bg="#1b2636", nn_border="#28354a", nn_val="#5b9bf0",
               vn_bg="#2e1f1e", vn_border="#432a28", vn_val="#e8756a",
-              surface_t="rgba(28,31,38,0.72)")
+              surface_t="rgba(28,31,38,0.72)",
+              sb_bg="#1c1f26", sb_active_bg="#1f3a5f", sb_active_text="#6ea8fe")
 else:
     _C = dict(bg="#f5f6f8", surface="#ffffff", surface2="#fafafa", border="#e4e4e8",
               text="#1a1a1a", muted="#8a8a92", shadow="rgba(31,41,61,0.08)",
               btn_bg="#1a1a1a", btn_text="#ffffff", btn_hover="#333333",
               input_bg="#fcfcfc", nn_bg="#eef5ff", nn_border="#d7e8fb", nn_val="#1b63c4",
               vn_bg="#fff1ef", vn_border="#fbdbd5", vn_val="#c8372a",
-              surface_t="rgba(255,255,255,0.72)")
+              surface_t="rgba(255,255,255,0.72)",
+              sb_bg="#fbfcff", sb_active_bg="#e8f0fe", sb_active_text="#2f6fed")
 
 # ── Nền cảnh núi Phú Sĩ — TĨNH (không đổi theo giờ, không có mây/chim/hoa
 # chuyển động nữa), chỉ đổi giữa 2 bảng màu ngày/đêm theo nút sáng/tối. ──
@@ -1835,30 +1837,38 @@ st.markdown(f"""
     .tnode-vn .tnode-val {{color: {_C['vn_val']};}}
     .ctree-title {{font-size: 0.85rem; font-weight: 650; color: {_C['muted']}; margin-bottom: 0.3rem;}}
 
-    /* ── Thanh điều hướng bên trái (sidebar) — màu cố định, không đổi theo
-       sáng/tối, để làm điểm nhấn thương hiệu giống các dashboard hiện đại. */
-    [data-testid="stSidebar"] {{background: #2b2768 !important;}}
-    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{gap: 0.5rem;}}
-    .sb-logo {{
-        color: #ffffff !important; font-size: 1.1rem; padding: 0.3rem 0 0.9rem;
-        white-space: nowrap;
+    /* ── Thanh điều hướng bên trái (sidebar) — nền sáng, mục đang chọn có
+       nền xanh dương nhạt dạng viên thuốc (pill), theo mẫu bạn gửi. */
+    [data-testid="stSidebar"] {{
+        background: {_C['sb_bg']} !important; border-right: 1px solid {_C['border']};
     }}
-    .sb-divider {{border: none; border-top: 1px solid rgba(255,255,255,0.18); margin: 0.6rem 0;}}
+    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{gap: 0.35rem;}}
+    .sb-logo {{
+        color: {_C['text']} !important; font-size: 1.1rem; font-weight: 700;
+        padding: 0.3rem 0 0.2rem; white-space: nowrap;
+    }}
+    .sb-tagline {{
+        color: {_C['muted']} !important; font-size: 0.78rem; font-weight: 500;
+        padding: 0 0 0.9rem; white-space: nowrap;
+    }}
+    .sb-divider {{border: none; border-top: 1px solid {_C['border']}; margin: 0.6rem 0;}}
     [data-testid="stSidebar"] .stButton button {{
         background: transparent !important; border: 1px solid transparent !important;
-        color: #f1effc !important; text-align: left !important; justify-content: flex-start !important;
+        border-radius: 10px !important;
+        color: {_C['muted']} !important; text-align: left !important; justify-content: flex-start !important;
         font-weight: 600 !important; font-size: 1rem !important;
-        padding: 0.7rem 0.9rem !important;
+        padding: 0.65rem 0.9rem !important;
     }}
-    [data-testid="stSidebar"] .stButton button p {{color: #f1effc !important; font-size: 1rem !important;}}
+    [data-testid="stSidebar"] .stButton button p {{color: {_C['muted']} !important; font-size: 1rem !important;}}
     [data-testid="stSidebar"] .stButton button:hover {{
-        background: rgba(255,255,255,0.12) !important; border-color: rgba(255,255,255,0.12) !important;
+        background: {_C['surface2']} !important; border-color: {_C['surface2']} !important;
     }}
     [data-testid="stSidebar"] .stButton button[kind="primary"] {{
-        background: #5952d4 !important; border-color: #5952d4 !important; color: #ffffff !important;
+        background: {_C['sb_active_bg']} !important; border-color: {_C['sb_active_bg']} !important;
+        color: {_C['sb_active_text']} !important;
     }}
-    [data-testid="stSidebar"] .stButton button[kind="primary"] p {{color: #ffffff !important;}}
-    [data-testid="stSidebar"] .stButton button[kind="primary"]:hover {{background: #6a62e8 !important;}}
+    [data-testid="stSidebar"] .stButton button[kind="primary"] p {{color: {_C['sb_active_text']} !important;}}
+    [data-testid="stSidebar"] .stButton button[kind="primary"]:hover {{background: {_C['sb_active_bg']} !important;}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1920,7 +1930,8 @@ _NAV_ITEMS = [
 _RECON_GROUP = {"recon", "recon_person", "recon_quick", "recon_room", "counter"}
 
 with st.sidebar:
-    st.markdown('<div class="sb-logo"><b>🏢 Hotel Processor</b></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sb-logo">🏢 Hotel Processor</div>'
+                '<div class="sb-tagline">Quản lý · Xử lý hồ sơ</div>', unsafe_allow_html=True)
     for _key, _icon, _label in _NAV_ITEMS:
         _active = (st.session_state.menu == _key) or (_key == "recon" and st.session_state.menu in _RECON_GROUP)
         st.button(f"{_icon}  {_label}", key=f"nav_{_key or 'home'}",
