@@ -1696,11 +1696,11 @@ st.markdown(f"""
         border: 1px solid {_C['border']};
         border-radius: 14px;
         box-shadow: 0 2px 16px {_C['shadow']};
-        margin-top: 1.5rem; margin-bottom: 1.5rem;
+        margin-top: 1.5rem; margin-bottom: 1.5rem; margin-left: auto; margin-right: auto;
         padding-top: 2.5rem; padding-bottom: 2.5rem; max-width: 840px;
     }}
     section[data-testid="stMain"] {{
-        display: flex; flex-direction: column; justify-content: safe center;
+        display: flex; flex-direction: column; align-items: center; justify-content: safe center;
         min-height: 100vh;
     }}
     /* Màu chữ mặc định của các thành phần Streamlit (nhãn, caption, ô tải
