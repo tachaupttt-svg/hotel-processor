@@ -1592,12 +1592,93 @@ else:
               input_bg="#fcfcfc", nn_bg="#eef5ff", nn_border="#d7e8fb", nn_val="#1b63c4",
               vn_bg="#fff1ef", vn_border="#fbdbd5", vn_val="#c8372a")
 
+# ── Nền cảnh núi Phú Sĩ — TĨNH (không đổi theo giờ, không có mây/chim/hoa
+# chuyển động nữa), chỉ đổi giữa 2 bảng màu ngày/đêm theo nút sáng/tối. ──
+def _fuji_svg(p):
+    stars = ""
+    if p.get("stars"):
+        import random as _rd
+        _rd.seed(7)  # cố định vị trí sao để base64 không đổi giữa các rerun
+        dots = "".join(
+            '<circle cx="%d" cy="%d" r="%.1f" fill="#ffffff" opacity="%.2f"/>'
+            % (_rd.randint(30, 1410), _rd.randint(20, 260), _rd.uniform(1.2, 2.6), _rd.uniform(0.4, 0.95))
+            for _ in range(26)
+        )
+        stars = '<g>' + dots + '</g>'
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">'
+        '<defs>'
+        '<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0%" stop-color="{p["sky0"]}"/><stop offset="50%" stop-color="{p["sky1"]}"/><stop offset="100%" stop-color="{p["sky2"]}"/>'
+        '</linearGradient>'
+        '<linearGradient id="mtn" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0%" stop-color="{p["mtn0"]}"/><stop offset="100%" stop-color="{p["mtn1"]}"/>'
+        '</linearGradient>'
+        '<linearGradient id="mtn2" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0%" stop-color="{p["far0"]}"/><stop offset="100%" stop-color="{p["far1"]}"/>'
+        '</linearGradient>'
+        '<linearGradient id="water" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0%" stop-color="{p["water0"]}"/><stop offset="100%" stop-color="{p["water1"]}"/>'
+        '</linearGradient>'
+        '</defs>'
+        '<rect width="1440" height="900" fill="url(#sky)"/>'
+        + stars +
+        f'<circle cx="{p["orb_x"]}" cy="{p["orb_y"]}" r="{p["orb_r"] + 40}" fill="{p["orb"]}" opacity="0.18"/>'
+        f'<circle cx="{p["orb_x"]}" cy="{p["orb_y"]}" r="{p["orb_r"]}" fill="{p["orb"]}" opacity="{p["orb_op"]}"/>'
+        '<path d="M0 560 Q 240 500 480 545 T 960 530 T 1440 555 L1440 900 L0 900 Z" fill="url(#mtn2)" opacity="0.55"/>'
+        '<path d="M-40 630 L300 250 L640 630 Z" fill="url(#mtn)"/>'
+        f'<path d="M216 361 L300 250 L391 367 Q 352 344 326 370 Q 300 344 274 370 Q 248 348 216 361 Z" fill="{p["snow"]}"/>'
+        f'<path d="M261 419 L281 406 L271 452 L255 458 Z" fill="{p["snow"]}" opacity="0.9"/>'
+        f'<path d="M333 416 L320 403 L336 448 L352 455 Z" fill="{p["snow"]}" opacity="0.9"/>'
+        f'<ellipse cx="300" cy="638" rx="360" ry="26" fill="#ffffff" opacity="{p["mist_op"]}"/>'
+        '<path d="M0 660 Q 360 630 720 655 T 1440 660 L1440 900 L0 900 Z" fill="url(#water)"/>'
+        '<path d="M0 660 Q 360 630 720 655 T 1440 660" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.35"/>'
+        '<path d="M-40 672 L300 852 L640 672 Z" fill="url(#mtn)" opacity="0.22"/>'
+        f'<path d="M240 726 L300 800 L364 730 Q 336 745 322 728 Q 300 746 282 728 Q 262 740 240 726 Z" fill="{p["snow"]}" opacity="0.14"/>'
+        f'<ellipse cx="{p["orb_x"]}" cy="705" rx="72" ry="13" fill="{p["orb"]}" opacity="0.3"/>'
+        f'<ellipse cx="{p["orb_x"] - 12}" cy="735" rx="46" ry="8" fill="{p["orb"]}" opacity="0.18"/>'
+        f'<ellipse cx="{p["orb_x"] + 10}" cy="762" rx="28" ry="5" fill="{p["orb"]}" opacity="0.1"/>'
+        '<path d="M120 730 q 45 -8 90 0" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.14" stroke-linecap="round"/>'
+        '<path d="M540 780 q 55 -9 110 0" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.12" stroke-linecap="round"/>'
+        '<path d="M820 720 q 40 -7 80 0" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.14" stroke-linecap="round"/>'
+        '<path d="M300 830 q 60 -9 120 0" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.1" stroke-linecap="round"/>'
+        '<path d="M1150 800 q 50 -8 100 0" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.12" stroke-linecap="round"/>'
+        f'<g opacity="{p["blossom_op"]}" fill="{p["blossom"]}">'
+        '<circle cx="180" cy="700" r="7"/><circle cx="205" cy="690" r="6"/><circle cx="195" cy="712" r="6"/>'
+        '<circle cx="1260" cy="680" r="7"/><circle cx="1285" cy="695" r="6"/><circle cx="1270" cy="668" r="5"/>'
+        '</g></svg>'
+    )
+
+_BG_PALETTES = {
+    "noon": dict(sky0="#9fd4f5", sky1="#c9e8fa", sky2="#eaf6fd",
+                 orb="#fff3b0", orb_x=1080, orb_y=160, orb_r=80, orb_op="0.9",
+                 mtn0="#7f9cc0", mtn1="#5f7fa8", far0="#b8cfe6", far1="#9fbdd9",
+                 snow="#fbfdff", mist_op="0.45",
+                 water0="#bfe0f5", water1="#7fb4dd",
+                 blossom="#f2c9d8", blossom_op="0.5"),
+    "night": dict(sky0="#16213e", sky1="#3a3f66", sky2="#6b5b8a",
+                  orb="#ffe9a8", orb_x=1080, orb_y=200, orb_r=70, orb_op="0.9",
+                  mtn0="#3d4a6b", mtn1="#2c3854", far0="#4a5680", far1="#3d4a6b",
+                  snow="#dfe6f5", mist_op="0.16",
+                  water0="#3b3f66", water1="#1d2440",
+                  blossom="#a86f8a", blossom_op="0.35", stars=True),
+}
+
+@st.cache_resource
+def _build_fuji_bg_b64(palette_key):
+    import base64 as _b64
+    return _b64.b64encode(_fuji_svg(_BG_PALETTES[palette_key]).encode()).decode()
+
+_bg_b64 = _build_fuji_bg_b64("night" if _dm else "noon")
+
 st.markdown(f"""
 <style>
     #MainMenu {{visibility: hidden;}}
     footer {{visibility: hidden;}}
     header[data-testid="stHeader"] {{background: transparent;}}
-    .stApp {{background: {_C['bg']};}}
+    .stApp {{
+        background: url("data:image/svg+xml;base64,{_bg_b64}") center 35% / cover no-repeat fixed, {_C['bg']};
+    }}
     .block-container {{
         background: {_C['surface']};
         border: 1px solid {_C['border']};
