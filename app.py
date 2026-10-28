@@ -1617,7 +1617,7 @@ st.markdown(f"""
     footer {{visibility: hidden;}}
     header[data-testid="stHeader"] {{background: transparent;}}
     .stApp {{
-        background: url("data:image/jpeg;base64,{_bg_b64}") center / contain no-repeat fixed, {_C['bg']};
+        background: url("data:image/jpeg;base64,{_bg_b64}") center / 100% 100% no-repeat fixed, {_C['bg']};
     }}
     .block-container {{
         background: {_C['surface_t']};
