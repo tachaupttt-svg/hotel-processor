@@ -1850,7 +1850,7 @@ st.markdown(f"""
     }}
     [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{gap: 0.35rem;}}
     .sb-logo-img {{
-        display: block; width: 64px; height: 64px; border-radius: 50%;
+        display: block; width: 92px; height: 92px; border-radius: 50%;
         object-fit: cover; margin: 0.6rem auto 0.5rem;
         border: 2px solid {_C['border']}; box-shadow: 0 2px 8px {_C['shadow']};
     }}
