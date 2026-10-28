@@ -21,6 +21,12 @@ def _load_app_icon():
 
 st.set_page_config(page_title="Hotel Guest Processor", page_icon=_load_app_icon(), layout="centered")
 
+@st.cache_resource
+def _load_sb_logo_b64():
+    p = os.path.join(os.path.dirname(__file__), 'sb_logo.b64')
+    with open(p, 'r') as f:
+        return f.read()
+
 # ── Load embedded templates ──────────────────────────────────────────────
 @st.cache_resource
 def load_template(name):
@@ -1843,9 +1849,14 @@ st.markdown(f"""
         background: {_C['sb_bg']} !important; border-right: 1px solid {_C['border']};
     }}
     [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{gap: 0.35rem;}}
+    .sb-logo-img {{
+        display: block; width: 92px; height: 92px; border-radius: 50%;
+        object-fit: cover; margin: 0.6rem auto 0.5rem;
+        border: 2px solid {_C['border']}; box-shadow: 0 2px 8px {_C['shadow']};
+    }}
     .sb-logo {{
-        color: {_C['text']} !important; font-size: 1.55rem; font-weight: 750;
-        padding: 0.6rem 0 0.3rem; text-align: center;
+        color: {_C['text']} !important; font-size: 1.3rem; font-weight: 750;
+        padding: 0 0 0.3rem; text-align: center;
     }}
     .sb-tagline {{
         color: {_C['muted']} !important; font-size: 0.8rem; font-weight: 500;
@@ -1936,8 +1947,10 @@ _NAV_ITEMS = [
 _RECON_GROUP = {"recon", "recon_person", "recon_quick", "recon_room", "counter"}
 
 with st.sidebar:
-    st.markdown('<div class="sb-logo">🏢 Hotel Processor</div>'
-                '<div class="sb-tagline">Quản lý · Xử lý hồ sơ</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<img class="sb-logo-img" src="data:image/png;base64,{_load_sb_logo_b64()}">'
+        '<div class="sb-logo">Hotel Processor</div>'
+        '<div class="sb-tagline">Quản lý · Xử lý hồ sơ</div>', unsafe_allow_html=True)
     for _key, _icon, _label in _NAV_ITEMS:
         _active = (st.session_state.menu == _key) or (_key == "recon" and st.session_state.menu in _RECON_GROUP)
         st.button(f"{_icon}  {_label}", key=f"nav_{_key or 'home'}",
