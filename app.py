@@ -1697,7 +1697,7 @@ st.markdown(f"""
         border-radius: 14px;
         box-shadow: 0 2px 16px {_C['shadow']};
         margin-top: 1.5rem; margin-bottom: 1.5rem;
-        padding-top: 2.2rem; padding-bottom: 2.2rem; max-width: 720px;
+        padding-top: 2.5rem; padding-bottom: 2.5rem; max-width: 840px;
     }}
     section[data-testid="stMain"] {{
         display: flex; flex-direction: column; justify-content: safe center;
