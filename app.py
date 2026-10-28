@@ -1859,6 +1859,12 @@ st.markdown(f"""
         font-weight: 600 !important; font-size: 1rem !important;
         padding: 0.65rem 0.9rem !important;
     }}
+    /* Khung bọc nội dung bên trong nút (do Streamlit tự tạo) mặc định canh
+       GIỮA, khiến nhãn bắt đầu lệch nhau theo độ rộng icon — ép canh trái
+       để tất cả các mục xếp thẳng hàng. */
+    [data-testid="stSidebar"] .stButton button > div {{
+        justify-content: flex-start !important; width: 100%;
+    }}
     [data-testid="stSidebar"] .stButton button p {{color: {_C['muted']} !important; font-size: 1rem !important;}}
     [data-testid="stSidebar"] .stButton button:hover {{
         background: {_C['surface2']} !important; border-color: {_C['surface2']} !important;
