@@ -1228,42 +1228,53 @@ def _norm_room(r):
 # trí, quản lý...) có đăng ký trên Trang lưu trú người nước ngoài nhưng không
 # phải khách trả tiền nên sẽ luôn không xuất hiện trên Smile. Áp dụng sẵn mỗi
 # lần kiểm tra, không cần tải file ngoại lệ nữa. Cập nhật danh sách này tại
-# đây khi có thay đổi nhân sự.
+# đây khi có thay đổi nhân sự. (Cập nhật 28/10/2026: đối chiếu lại với Trang
+# lưu trú hiện tại, còn 19/29 người cũ + 3 người mới.)
 DEFAULT_EXCEPTION_LIST = [
-    {'Họ tên': 'DURUKAN BURKAY (directo fb&kit)', 'Số hộ chiếu': 'U21039284', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '506'},
-    {'Họ tên': 'ASLAN CAN (ENT manager)', 'Số hộ chiếu': 'U25646580', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '510'},
-    {'Họ tên': 'RUDSKAIA VIKTORIIA ( ENT ĐK KÉ 516)', 'Số hộ chiếu': '768076306', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '516'},
-    {'Họ tên': 'SHUKEYEVA MADINA ( ENT ĐK KÉ 520)', 'Số hộ chiếu': 'N15696601', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '520'},
+    {'Họ tên': 'NOVITSKAIA ZHANNA', 'Số hộ chiếu': '669065213', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '522'},
+    {'Họ tên': 'WAHBA MICHAEL TALATT SHEHA', 'Số hộ chiếu': 'A39295537', 'Quốc tịch': 'Ai Cập', 'Số phòng': '534'},
+    {'Họ tên': 'DAULETOVA ZHANEL', 'Số hộ chiếu': 'N20095654', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '514'},
+    {'Họ tên': 'ERSOZ FURKAN', 'Số hộ chiếu': 'U26395931', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '514'},
     {'Họ tên': 'KOROTKOVA YELENA ( ENT ĐK KÉ 519)', 'Số hộ chiếu': 'N13835191', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '519'},
+    {'Họ tên': 'RUDSKAIA VIKTORIIA ( ENT ĐK KÉ 516)', 'Số hộ chiếu': '768076306', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '516'},
+    {'Họ tên': 'SERGEEVA ANASTASIIA (GRM)', 'Số hộ chiếu': '551237982', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '520'},
+    {'Họ tên': 'ASLAN CAN (ENT manager)', 'Số hộ chiếu': 'U25646580', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '510'},
+    {'Họ tên': 'SHUKEYEVA MADINA ( ENT ĐK KÉ 520)', 'Số hộ chiếu': 'N15696601', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '520'},
     {'Họ tên': 'GAFU OXANA  ( ENT ĐK KÉ 518)', 'Số hộ chiếu': 'N13111266', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '518'},
     {'Họ tên': 'KARAAGAC MEHMET CENGIZ', 'Số hộ chiếu': 'U24677256', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '1042'},
     {'Họ tên': 'ACIKGOZ GOKHAN ( BẾP ĐK KÉ 506)', 'Số hộ chiếu': 'U40108913', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '506'},
-    {'Họ tên': 'BAZARBAYEV ASLANBEK (guide)', 'Số hộ chiếu': 'N15077980', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '534'},
-    {'Họ tên': 'KIM DMITRII (guide)', 'Số hộ chiếu': '763075493', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '532'},
-    {'Họ tên': 'MAMEDOV KAMIL (guide)', 'Số hộ chiếu': 'N17685004', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '534'},
-    {'Họ tên': 'DOVAR MUSTAFA', 'Số hộ chiếu': 'U31576701', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '519'},
     {'Họ tên': 'TURAN UGUR', 'Số hộ chiếu': 'U24453636', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '516'},
-    {'Họ tên': 'TAYFUR ANIL (ENT tóc xoăn)', 'Số hộ chiếu': 'U29232763', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '512'},
     {'Họ tên': 'BERBER CIHAN ( Bếp trưởng)', 'Số hộ chiếu': 'U37721919', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '518'},
-    {'Họ tên': 'KOTOV IHOR (guide)', 'Số hộ chiếu': 'FU052955', 'Quốc tịch': 'U-crai-na', 'Số phòng': '532'},
     {'Họ tên': 'ZAKHARCHENKO VALENTYNA (guide)', 'Số hộ chiếu': 'UA034939', 'Quốc tịch': 'U-crai-na', 'Số phòng': '522'},
     {'Họ tên': 'SUCHSHIK ALEXANDR (GIẢI TRÍ ĐK KÉ 508)', 'Số hộ chiếu': 'N11823260', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '508'},
     {'Họ tên': 'DEMIR UGUR (AGM)', 'Số hộ chiếu': 'U23530522', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': 'PHONG NOI BO'},
     {'Họ tên': 'MOMPIE VAZQUEZ OLEXIS (entertaiment)', 'Số hộ chiếu': 'L768690', 'Quốc tịch': 'Cu Ba', 'Số phòng': 'P NOI BO'},
-    {'Họ tên': 'OZDEMIR FERHAT', 'Số hộ chiếu': 'U26515178', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': 'Phòng nội bộ'},
-    {'Họ tên': 'MAYSTRENKO VICTORIYA (guide)', 'Số hộ chiếu': '766938629', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '522'},
-    {'Họ tên': 'SERGEEVA ANASTASIIA (GRM)', 'Số hộ chiếu': '551237982', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '520'},
-    {'Họ tên': 'KASABIAN KARINA', 'Số hộ chiếu': '772552439', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': 'PHONG NOI BO'},
     {'Họ tên': 'OLMEZ MURAT', 'Số hộ chiếu': 'U36308112', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': 'PHONG NOI BO'},
-    {'Họ tên': 'DEGIRMENCI ZIYA DENIZ', 'Số hộ chiếu': 'U26394094', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '536'},
-    {'Họ tên': 'GOK ORHAN', 'Số hộ chiếu': 'U40570415', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '536'},
-    {'Họ tên': 'CICEK ESAT', 'Số hộ chiếu': 'U30474111', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '508'},
-    {'Họ tên': 'ERSOZ FURKAN', 'Số hộ chiếu': 'U26395931', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '514'},
 ]
 DEFAULT_EXCEPTION_INFO = {
     _norm_pp(x['Số hộ chiếu']): {'Họ tên': x['Họ tên'], 'Số phòng': x['Số phòng'], 'Quốc tịch': x['Quốc tịch']}
     for x in DEFAULT_EXCEPTION_LIST
 }
+
+# Người từng nằm trong danh sách ngoại lệ ở trên nhưng khi đối chiếu lại
+# (28/10/2026) không còn thấy đăng ký trên Trang lưu trú nữa — coi như đã
+# check out. KHÔNG áp dụng vào kiểm tra nữa, chỉ lưu lại để tham khảo/tra cứu
+# khi cần (vd xác minh ai đã rời đi).
+CHECKED_OUT_EXCEPTION_LIST = [
+    {'Họ tên': 'DURUKAN BURKAY (directo fb&kit)', 'Số hộ chiếu': 'U21039284', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '506'},
+    {'Họ tên': 'BAZARBAYEV ASLANBEK (guide)', 'Số hộ chiếu': 'N15077980', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '534'},
+    {'Họ tên': 'KIM DMITRII (guide)', 'Số hộ chiếu': '763075493', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '532'},
+    {'Họ tên': 'MAMEDOV KAMIL (guide)', 'Số hộ chiếu': 'N17685004', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '534'},
+    {'Họ tên': 'DOVAR MUSTAFA', 'Số hộ chiếu': 'U31576701', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '519'},
+    {'Họ tên': 'TAYFUR ANIL (ENT tóc xoăn)', 'Số hộ chiếu': 'U29232763', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '512'},
+    {'Họ tên': 'KOTOV IHOR (guide)', 'Số hộ chiếu': 'FU052955', 'Quốc tịch': 'U-crai-na', 'Số phòng': '532'},
+    {'Họ tên': 'OZDEMIR FERHAT', 'Số hộ chiếu': 'U26515178', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': 'Phòng nội bộ'},
+    {'Họ tên': 'MAYSTRENKO VICTORIYA (guide)', 'Số hộ chiếu': '766938629', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '522'},
+    {'Họ tên': 'KASABIAN KARINA', 'Số hộ chiếu': '772552439', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': 'PHONG NOI BO'},
+    {'Họ tên': 'DEGIRMENCI ZIYA DENIZ', 'Số hộ chiếu': 'U26394094', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '536'},
+    {'Họ tên': 'GOK ORHAN', 'Số hộ chiếu': 'U40570415', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '536'},
+    {'Họ tên': 'CICEK ESAT', 'Số hộ chiếu': 'U30474111', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '508'},
+]
 
 def _parse_exception_list(exception_bytes):
     """Trích thông tin (Họ tên, Số phòng) theo số hộ chiếu từ file danh sách
@@ -2657,6 +2668,9 @@ if st.session_state.menu == "recon_person":
     st.caption(f"✅ Đã áp dụng sẵn danh sách ngoại lệ nội bộ ({len(DEFAULT_EXCEPTION_LIST)} người) — không cần tải file mỗi lần kiểm tra.")
     with st.expander(f"📋 Xem danh sách ngoại lệ có sẵn ({len(DEFAULT_EXCEPTION_LIST)} người)"):
         st.dataframe(pd.DataFrame(DEFAULT_EXCEPTION_LIST), use_container_width=True, hide_index=True)
+    with st.expander(f"☑️ Đã check out, không còn áp dụng ({len(CHECKED_OUT_EXCEPTION_LIST)} người)"):
+        st.caption("Trước đây nằm trong danh sách ngoại lệ nhưng không còn đăng ký trên Trang lưu trú — lưu lại để tham khảo.")
+        st.dataframe(pd.DataFrame(CHECKED_OUT_EXCEPTION_LIST), use_container_width=True, hide_index=True)
 
     exception_file = st.file_uploader(
         "Bổ sung thêm người ngoại lệ mới (.xlsx, không bắt buộc)",
