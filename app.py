@@ -1584,13 +1584,15 @@ if _dm:
               text="#eceef1", muted="#9196a0", shadow="rgba(0,0,0,0.35)",
               btn_bg="#eceef1", btn_text="#14161b", btn_hover="#d7d9de",
               input_bg="#1c1f26", nn_bg="#1b2636", nn_border="#28354a", nn_val="#5b9bf0",
-              vn_bg="#2e1f1e", vn_border="#432a28", vn_val="#e8756a")
+              vn_bg="#2e1f1e", vn_border="#432a28", vn_val="#e8756a",
+              surface_t="rgba(28,31,38,0.72)")
 else:
     _C = dict(bg="#f5f6f8", surface="#ffffff", surface2="#fafafa", border="#e4e4e8",
               text="#1a1a1a", muted="#8a8a92", shadow="rgba(31,41,61,0.08)",
               btn_bg="#1a1a1a", btn_text="#ffffff", btn_hover="#333333",
               input_bg="#fcfcfc", nn_bg="#eef5ff", nn_border="#d7e8fb", nn_val="#1b63c4",
-              vn_bg="#fff1ef", vn_border="#fbdbd5", vn_val="#c8372a")
+              vn_bg="#fff1ef", vn_border="#fbdbd5", vn_val="#c8372a",
+              surface_t="rgba(255,255,255,0.72)")
 
 # ── Nền cảnh núi Phú Sĩ — TĨNH (không đổi theo giờ, không có mây/chim/hoa
 # chuyển động nữa), chỉ đổi giữa 2 bảng màu ngày/đêm theo nút sáng/tối. ──
@@ -1680,7 +1682,9 @@ st.markdown(f"""
         background: url("data:image/svg+xml;base64,{_bg_b64}") center 35% / cover no-repeat fixed, {_C['bg']};
     }}
     .block-container {{
-        background: {_C['surface']};
+        background: {_C['surface_t']};
+        backdrop-filter: blur(14px) saturate(1.1);
+        -webkit-backdrop-filter: blur(14px) saturate(1.1);
         border: 1px solid {_C['border']};
         border-radius: 14px;
         box-shadow: 0 2px 16px {_C['shadow']};
