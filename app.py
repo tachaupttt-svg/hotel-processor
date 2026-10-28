@@ -1699,7 +1699,7 @@ st.markdown(f"""
         margin-top: 1.5rem; margin-bottom: 1.5rem; margin-left: auto; margin-right: auto;
         padding-top: 2.5rem; padding-bottom: 2.5rem; max-width: 840px;
     }}
-    section[data-testid="stMain"] {{
+    [data-testid="stMain"] {{
         display: flex; flex-direction: column; align-items: center; justify-content: safe center;
         min-height: 100vh;
     }}
