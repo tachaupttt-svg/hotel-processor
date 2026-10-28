@@ -1574,442 +1574,211 @@ def reconcile_quick(smile_bytes, luutru_bytes):
 
 # ── UI ────────────────────────────────────────────────────────────────────
 
-# Custom CSS — Minimalist white (Notion/Linear style)
-st.markdown("""
+# Custom CSS — Tối giản, phẳng (dashboard style), hỗ trợ sáng/tối
+if "dark_mode" not in st.session_state:
+    st.session_state.dark_mode = False
+
+_dm = st.session_state.dark_mode
+if _dm:
+    _C = dict(bg="#14161b", surface="#1c1f26", surface2="#20242c", border="#2a2e37",
+              text="#eceef1", muted="#9196a0", shadow="rgba(0,0,0,0.35)",
+              btn_bg="#eceef1", btn_text="#14161b", btn_hover="#d7d9de",
+              input_bg="#1c1f26", nn_bg="#1b2636", nn_border="#28354a", nn_val="#5b9bf0",
+              vn_bg="#2e1f1e", vn_border="#432a28", vn_val="#e8756a")
+else:
+    _C = dict(bg="#f5f6f8", surface="#ffffff", surface2="#fafafa", border="#e4e4e8",
+              text="#1a1a1a", muted="#8a8a92", shadow="rgba(31,41,61,0.08)",
+              btn_bg="#1a1a1a", btn_text="#ffffff", btn_hover="#333333",
+              input_bg="#fcfcfc", nn_bg="#eef5ff", nn_border="#d7e8fb", nn_val="#1b63c4",
+              vn_bg="#fff1ef", vn_border="#fbdbd5", vn_val="#c8372a")
+
+st.markdown(f"""
 <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header[data-testid="stHeader"] {background: transparent;}
-    .stApp {
-        background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNDQwIDkwMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgc2xpY2UiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0ic2t5IiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzlmZDRmNSIvPjxzdG9wIG9mZnNldD0iNTAlIiBzdG9wLWNvbG9yPSIjYzllOGZhIi8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZWFmNmZkIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9Im10biIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM3ZjljYzAiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM1ZjdmYTgiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0ibXRuMiIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNiOGNmZTYiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM5ZmJkZDkiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0id2F0ZXIiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjYmZlMGY1Ii8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjN2ZiNGRkIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjE0NDAiIGhlaWdodD0iOTAwIiBmaWxsPSJ1cmwoI3NreSkiLz48Y2lyY2xlIGN4PSIxMDgwIiBjeT0iMTYwIiByPSIxMjAiIGZpbGw9IiNmZmYzYjAiIG9wYWNpdHk9IjAuMTgiLz48Y2lyY2xlIGN4PSIxMDgwIiBjeT0iMTYwIiByPSI4MCIgZmlsbD0iI2ZmZjNiMCIgb3BhY2l0eT0iMC45Ii8+PHBhdGggZD0iTTAgNTYwIFEgMjQwIDUwMCA0ODAgNTQ1IFQgOTYwIDUzMCBUIDE0NDAgNTU1IEwxNDQwIDkwMCBMMCA5MDAgWiIgZmlsbD0idXJsKCNtdG4yKSIgb3BhY2l0eT0iMC41NSIvPjxwYXRoIGQ9Ik0tNDAgNjMwIEwzMDAgMjUwIEw2NDAgNjMwIFoiIGZpbGw9InVybCgjbXRuKSIvPjxwYXRoIGQ9Ik0yMTYgMzYxIEwzMDAgMjUwIEwzOTEgMzY3IFEgMzUyIDM0NCAzMjYgMzcwIFEgMzAwIDM0NCAyNzQgMzcwIFEgMjQ4IDM0OCAyMTYgMzYxIFoiIGZpbGw9IiNmYmZkZmYiLz48cGF0aCBkPSJNMjYxIDQxOSBMMjgxIDQwNiBMMjcxIDQ1MiBMMjU1IDQ1OCBaIiBmaWxsPSIjZmJmZGZmIiBvcGFjaXR5PSIwLjkiLz48cGF0aCBkPSJNMzMzIDQxNiBMMzIwIDQwMyBMMzM2IDQ0OCBMMzUyIDQ1NSBaIiBmaWxsPSIjZmJmZGZmIiBvcGFjaXR5PSIwLjkiLz48ZWxsaXBzZSBjeD0iMzAwIiBjeT0iNjM4IiByeD0iMzYwIiByeT0iMjYiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuNDUiLz48cGF0aCBkPSJNMCA2NjAgUSAzNjAgNjMwIDcyMCA2NTUgVCAxNDQwIDY2MCBMMTQ0MCA5MDAgTDAgOTAwIFoiIGZpbGw9InVybCgjd2F0ZXIpIi8+PHBhdGggZD0iTTAgNjYwIFEgMzYwIDYzMCA3MjAgNjU1IFQgMTQ0MCA2NjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjM1Ii8+PHBhdGggZD0iTS00MCA2NzIgTDMwMCA4NTIgTDY0MCA2NzIgWiIgZmlsbD0idXJsKCNtdG4pIiBvcGFjaXR5PSIwLjIyIi8+PHBhdGggZD0iTTI0MCA3MjYgTDMwMCA4MDAgTDM2NCA3MzAgUSAzMzYgNzQ1IDMyMiA3MjggUSAzMDAgNzQ2IDI4MiA3MjggUSAyNjIgNzQwIDI0MCA3MjYgWiIgZmlsbD0iI2ZiZmRmZiIgb3BhY2l0eT0iMC4xNCIvPjxlbGxpcHNlIGN4PSIxMDgwIiBjeT0iNzA1IiByeD0iNzIiIHJ5PSIxMyIgZmlsbD0iI2ZmZjNiMCIgb3BhY2l0eT0iMC4zIi8+PGVsbGlwc2UgY3g9IjEwNjgiIGN5PSI3MzUiIHJ4PSI0NiIgcnk9IjgiIGZpbGw9IiNmZmYzYjAiIG9wYWNpdHk9IjAuMTgiLz48ZWxsaXBzZSBjeD0iMTA5MCIgY3k9Ijc2MiIgcng9IjI4IiByeT0iNSIgZmlsbD0iI2ZmZjNiMCIgb3BhY2l0eT0iMC4xIi8+PHBhdGggZD0iTTEyMCA3MzAgcSA0NSAtOCA5MCAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMi41IiBvcGFjaXR5PSIwLjE0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNNTQwIDc4MCBxIDU1IC05IDExMCAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMi41IiBvcGFjaXR5PSIwLjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNODIwIDcyMCBxIDQwIC03IDgwIDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyLjUiIG9wYWNpdHk9IjAuMTQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik0zMDAgODMwIHEgNjAgLTkgMTIwIDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyLjUiIG9wYWNpdHk9IjAuMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTExNTAgODAwIHEgNTAgLTggMTAwIDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyLjUiIG9wYWNpdHk9IjAuMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxnIG9wYWNpdHk9IjAuNSIgZmlsbD0iI2YyYzlkOCI+PGNpcmNsZSBjeD0iMTgwIiBjeT0iNzAwIiByPSI3Ii8+PGNpcmNsZSBjeD0iMjA1IiBjeT0iNjkwIiByPSI2Ii8+PGNpcmNsZSBjeD0iMTk1IiBjeT0iNzEyIiByPSI2Ii8+PGNpcmNsZSBjeD0iMTI2MCIgY3k9IjY4MCIgcj0iNyIvPjxjaXJjbGUgY3g9IjEyODUiIGN5PSI2OTUiIHI9IjYiLz48Y2lyY2xlIGN4PSIxMjcwIiBjeT0iNjY4IiByPSI1Ii8+PC9nPjwvc3ZnPg==") center 35% / cover no-repeat fixed, #eaf4fb;
-    }
-    /* Khối nội dung: kính mờ (frosted glass) — đủ đục để chữ luôn dễ đọc trên MỌI nền
-       (sáng/trưa/tối), cảnh Phú Sĩ + trăng nằm hai bên ngoài khung nên vẫn thấy trọn */
-    .block-container {
-        background: rgba(255,255,255,0.55);
-        backdrop-filter: blur(14px) saturate(1.05);
-        -webkit-backdrop-filter: blur(14px) saturate(1.05);
-        border: 1px solid rgba(255,255,255,0.65);
-        border-radius: 18px;
-        box-shadow: 0 8px 32px rgba(31,52,96,0.14);
+    #MainMenu {{visibility: hidden;}}
+    footer {{visibility: hidden;}}
+    header[data-testid="stHeader"] {{background: transparent;}}
+    .stApp {{background: {_C['bg']};}}
+    .block-container {{
+        background: {_C['surface']};
+        border: 1px solid {_C['border']};
+        border-radius: 14px;
+        box-shadow: 0 2px 16px {_C['shadow']};
         margin-top: 1.5rem; margin-bottom: 1.5rem;
-        position: relative; z-index: 5;
-    }
-    .block-container {padding-top: 2.5rem; padding-bottom: 2.5rem; max-width: 720px;}
-    /* Đưa khung công việc ra GIỮA màn hình theo chiều dọc */
-    section[data-testid="stMain"] > div,
-    div[data-testid="stMainBlockContainer"] { }
-    section[data-testid="stMain"] {
+        padding-top: 2.2rem; padding-bottom: 2.2rem; max-width: 720px;
+    }}
+    section[data-testid="stMain"] {{
         display: flex; flex-direction: column; justify-content: safe center;
         min-height: 100vh;
-    }
-    .app-header {
-        margin-bottom: 2.5rem; padding-bottom: 1.5rem;
-        border-bottom: 1px solid #ececec;
-    }
-    .greet-row {
-        display: flex; align-items: center; justify-content: space-between;
-        flex-wrap: wrap; gap: 8px;
-    }
-    .greet-text {
-        font-size: 1.5rem; font-weight: 650; color: #1a1a1a;
-        letter-spacing: -0.02em; margin: 0;
-        animation: fadeIn 0.5s ease both;
-    }
-    .greet-emoji {margin-right: 6px;}
-    .clock-text {
-        font-size: 0.85rem; color: #9b9b9b; font-weight: 500;
-        font-variant-numeric: tabular-nums;
-        animation: fadeIn 0.5s ease 0.1s both;
-    }
-    #live-clock {color: #6b6b6b; font-weight: 600;}
-    @keyframes fadeIn {from {opacity: 0; transform: translateY(6px);} to {opacity: 1; transform: translateY(0);}}
-
-    /* Hiệu ứng chuyển cảnh khi MỞ một tính năng: cả khung trượt & mờ vào */
-    @keyframes screenEnter {
-        from {opacity: 0; transform: translateY(16px) scale(0.985);}
-        to   {opacity: 1; transform: translateY(0) scale(1);}
-    }
-    .block-container.screen-anim {
-        animation: screenEnter 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-    }
-    /* Nút "Mở →" và các nút chính: nhấn xuống nhẹ khi bấm (phản hồi tức thì) */
-    .stButton > button {transition: transform 0.12s ease, box-shadow 0.12s ease;}
-    .stButton > button:active {transform: scale(0.96);}
-    /* Card nhô lên mượt hơn khi rê chuột */
-    .menu-card {transition: transform 0.22s ease, box-shadow 0.22s ease;}
-    .section-label {
-        font-size: 0.7rem; font-weight: 650; color: #6b6b7e;
+    }}
+    /* Màu chữ mặc định của các thành phần Streamlit (nhãn, caption, ô tải
+       file...) — nếu không đặt lại thì vẫn theo theme sáng mặc định của
+       Streamlit, nhìn mờ/sai màu trên nền tối. */
+    .stApp, .stApp p, .stApp span, .stApp label, .stApp li {{color: {_C['text']};}}
+    [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p {{
+        color: {_C['muted']} !important;
+    }}
+    [data-testid="stWidgetLabel"] p {{color: {_C['text']} !important;}}
+    [data-testid="stFileUploaderDropzone"] {{
+        background: {_C['input_bg']} !important; border-color: {_C['border']} !important;
+    }}
+    [data-testid="stFileUploaderDropzone"] span, [data-testid="stFileUploaderDropzone"] small {{
+        color: {_C['muted']} !important;
+    }}
+    [data-testid="stFileUploaderFile"] {{background: {_C['surface2']} !important; color: {_C['text']} !important;}}
+    [data-testid="stExpander"] {{border-color: {_C['border']} !important; background: {_C['surface2']} !important;}}
+    [data-testid="stExpander"] summary {{color: {_C['text']} !important;}}
+    /* Hiệu ứng trượt-vào nhẹ khi chuyển màn hình */
+    @keyframes screenEnter {{
+        from {{opacity: 0; transform: translateY(12px);}}
+        to   {{opacity: 1; transform: translateY(0);}}
+    }}
+    .block-container.screen-anim {{animation: screenEnter 0.3s ease both;}}
+    .stButton > button {{transition: transform 0.1s ease;}}
+    .stButton > button:active {{transform: scale(0.97);}}
+    .section-label {{
+        font-size: 0.7rem; font-weight: 650; color: {_C['muted']};
         text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem;
-    }
-    .menu-card {
-        border-radius: 12px; padding: 1.5rem 1.4rem; margin-bottom: 0.6rem;
-        border: 1px solid rgba(255,255,255,0.7);
-        background: rgba(255,255,255,0.85);
-        backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-        transition: all 0.18s ease; min-height: 150px;
-        height: 100%; box-sizing: border-box;
-        animation: fadeIn 0.5s ease 0.15s both;
-    }
-    /* Các thẻ menu trong cùng 1 hàng cao bằng nhau, bất kể tiêu đề dài ngắn khác nhau */
-    div[data-testid="stHorizontalBlock"]:has(.menu-card) {align-items: stretch;}
-    div[data-testid="stColumn"]:has(.menu-card) {display: flex; flex-direction: column;}
-    div[data-testid="stColumn"]:has(.menu-card) > div[data-testid="stVerticalBlock"] {
+    }}
+    .menu-card {{
+        border-radius: 10px; padding: 1.4rem 1.3rem; margin-bottom: 0.6rem;
+        border: 1px solid {_C['border']}; background: {_C['surface2']};
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        min-height: 150px; height: 100%; box-sizing: border-box;
+    }}
+    div[data-testid="stHorizontalBlock"]:has(.menu-card) {{align-items: stretch;}}
+    div[data-testid="stColumn"]:has(.menu-card) {{display: flex; flex-direction: column;}}
+    div[data-testid="stColumn"]:has(.menu-card) > div[data-testid="stVerticalBlock"] {{
         flex: 1; display: flex; flex-direction: column;
-    }
-    div[data-testid="stVerticalBlock"] > div[data-testid="stElementContainer"]:has(.menu-card) {
+    }}
+    div[data-testid="stVerticalBlock"] > div[data-testid="stElementContainer"]:has(.menu-card) {{
         flex: 1; display: flex; flex-direction: column;
-    }
+    }}
     div[data-testid="stElementContainer"]:has(.menu-card) [data-testid="stMarkdown"],
     div[data-testid="stElementContainer"]:has(.menu-card) [data-testid="stMarkdown"] > div,
-    div[data-testid="stElementContainer"]:has(.menu-card) [data-testid="stMarkdownContainer"] {
+    div[data-testid="stElementContainer"]:has(.menu-card) [data-testid="stMarkdownContainer"] {{
         flex: 1; display: flex; flex-direction: column; height: 100%;
-    }
-    .menu-card:hover {
-        background: rgba(255,255,255,0.95);
-        border-color: rgba(255,255,255,0.8); box-shadow: 0 2px 14px rgba(31,52,96,0.10);
-    }
-    .menu-icon {font-size: 1.9rem; margin-bottom: 0.7rem; display: block;}
-    .menu-title {font-size: 1.02rem; font-weight: 650; color: #1a1a1a; margin-bottom: 0.35rem; letter-spacing: -0.01em;}
-    .menu-desc {font-size: 0.82rem; color: #8b8b8b; line-height: 1.55;}
-    div[data-testid="stFileUploader"] {
-        border: 1px dashed #dcdcdc; border-radius: 10px;
-        padding: 0.4rem; background: #fcfcfc;
-    }
-    .stTextInput input, .stNumberInput input {
-        border-radius: 8px !important; border-color: #e4e4e4 !important;
-    }
-    .stButton button {
+    }}
+    .menu-card:hover {{border-color: {_C['muted']}; box-shadow: 0 2px 10px {_C['shadow']};}}
+    .menu-icon {{font-size: 1.9rem; margin-bottom: 0.7rem; display: block;}}
+    .menu-title {{font-size: 1.02rem; font-weight: 650; color: {_C['text']}; margin-bottom: 0.35rem; letter-spacing: -0.01em;}}
+    .menu-desc {{font-size: 0.82rem; color: {_C['muted']}; line-height: 1.55;}}
+    div[data-testid="stFileUploader"] {{
+        border: 1px dashed {_C['border']}; border-radius: 10px;
+        padding: 0.4rem; background: {_C['input_bg']};
+    }}
+    .stTextInput input, .stNumberInput input {{
+        border-radius: 8px !important; border-color: {_C['border']} !important;
+        background: {_C['input_bg']} !important; color: {_C['text']} !important;
+    }}
+    .stButton button, button[data-testid="stBaseButton-secondary"] {{
         border-radius: 8px; font-weight: 550; padding: 0.6rem;
-        border: 1px solid #e4e4e4; transition: all 0.15s ease;
-    }
-    .stButton button:hover {border-color: #b4b4b4; background: #fafafa;}
-    .stButton button[kind="primary"] {
-        background: #1a1a1a; border-color: #1a1a1a; color: #fff;
-    }
-    .stButton button[kind="primary"]:hover, .stFormSubmitButton button:hover {background: #333; border-color: #333;}
-    .stDownloadButton button {
+        border: 1px solid {_C['border']}; transition: all 0.15s ease;
+        background: {_C['surface']}; color: {_C['text']};
+    }}
+    .stButton button:hover, button[data-testid="stBaseButton-secondary"]:hover {{border-color: {_C['muted']};}}
+    .stButton button[kind="primary"], button[data-testid="stBaseButton-primary"] {{
+        background: {_C['btn_bg']}; border-color: {_C['btn_bg']}; color: {_C['btn_text']};
+    }}
+    .stButton button[kind="primary"]:hover, button[data-testid="stBaseButton-primary"]:hover,
+    .stFormSubmitButton button:hover {{background: {_C['btn_hover']}; border-color: {_C['btn_hover']};}}
+    /* Nút vô hiệu hoá: giữ độ tương phản dễ đọc ở cả 2 giao diện thay vì
+       theo kiểu làm mờ mặc định của Streamlit (dễ biến mất trên nền tối) */
+    .stButton button:disabled, button[data-testid="stBaseButton-secondary"]:disabled,
+    button[data-testid="stBaseButton-primary"]:disabled, .stDownloadButton button:disabled {{
+        background: {_C['surface2']} !important; color: {_C['muted']} !important;
+        border-color: {_C['border']} !important; opacity: 1 !important;
+    }}
+    .stDownloadButton button {{
         border-radius: 8px; font-weight: 600; padding: 0.75rem;
-        background: #1a1a1a; border-color: #1a1a1a; color: #fff;
-    }
-    .stDownloadButton button:hover {background: #333;}
-    div[data-testid="stMetric"] {
-        background: #ffffff; border: 1px solid #ececec;
+        background: {_C['btn_bg']}; border-color: {_C['btn_bg']}; color: {_C['btn_text']};
+    }}
+    .stDownloadButton button:hover {{background: {_C['btn_hover']};}}
+    div[data-testid="stMetric"] {{
+        background: {_C['surface']}; border: 1px solid {_C['border']};
         border-radius: 10px; padding: 0.85rem 0.5rem; text-align: center;
-    }
-    div[data-testid="stMetricValue"] {color: #1a1a1a; font-weight: 700; font-size: 1.4rem;}
-    div[data-testid="stMetricLabel"] {color: #9b9b9b;}
-    .login-box {text-align: center; padding: 2rem 0 1rem;}
-    .login-box .lb-logo {font-size: 2.4rem;}
-    .login-box h2 {color: #1a1a1a; font-size: 1.3rem; font-weight: 700; margin: 0.6rem 0 0.25rem; letter-spacing: -0.02em;}
-    .login-box p {color: #9b9b9b; font-size: 0.85rem; margin: 0;}
+    }}
+    div[data-testid="stMetricValue"] {{color: {_C['text']}; font-weight: 700; font-size: 1.4rem;}}
+    div[data-testid="stMetricLabel"] {{color: {_C['muted']};}}
+    .login-box {{text-align: center; padding: 2rem 0 1rem;}}
+    .login-box .lb-logo {{font-size: 2.4rem;}}
+    .login-box h2 {{color: {_C['text']}; font-size: 1.3rem; font-weight: 700; margin: 0.6rem 0 0.25rem; letter-spacing: -0.02em;}}
+    .login-box p {{color: {_C['muted']}; font-size: 0.85rem; margin: 0;}}
 
     /* ── Sơ đồ nhánh cho Bộ đếm khách & phòng ─────────────────────────── */
-    .ctree-row {display: flex; gap: 1.2rem; flex-wrap: wrap; margin: 0.4rem 0 0.2rem;}
-    .ctree-col {flex: 1 1 260px; min-width: 240px;}
-    .ctree, .ctree ul, .ctree li {list-style: none; margin: 0; padding: 0; position: relative;}
-    .ctree {text-align: center;}
-    .ctree, .ctree ul {display: table; width: 100%;}
-    .ctree ul {table-layout: fixed;}
-    .ctree li {display: table-cell; padding: 1.6em 0.4em 0 0.4em; vertical-align: top;}
-    .ctree li::before {
-        outline: solid 1px #d7d7da; content: ""; left: 0; position: absolute; right: 0; top: 0;
-    }
-    .ctree li:first-child::before {left: 50%; border-radius: 6px 0 0 0;}
-    .ctree li:last-child::before {right: 50%; border-radius: 0 6px 0 0;}
-    .ctree li:only-child::before {display: none;}
-    .ctree ul::before {
+    .ctree-row {{display: flex; gap: 1.2rem; flex-wrap: wrap; margin: 0.4rem 0 0.2rem;}}
+    .ctree-col {{flex: 1 1 260px; min-width: 240px;}}
+    .ctree, .ctree ul, .ctree li {{list-style: none; margin: 0; padding: 0; position: relative;}}
+    .ctree {{text-align: center;}}
+    .ctree, .ctree ul {{display: table; width: 100%;}}
+    .ctree ul {{table-layout: fixed;}}
+    .ctree li {{display: table-cell; padding: 1.6em 0.4em 0 0.4em; vertical-align: top;}}
+    .ctree li::before {{
+        outline: solid 1px {_C['border']}; content: ""; left: 0; position: absolute; right: 0; top: 0;
+    }}
+    .ctree li:first-child::before {{left: 50%; border-radius: 6px 0 0 0;}}
+    .ctree li:last-child::before {{right: 50%; border-radius: 0 6px 0 0;}}
+    .ctree li:only-child::before {{display: none;}}
+    .ctree ul::before {{
         content: ""; position: absolute; top: -1em; left: 50%;
-        border-left: solid 1px #d7d7da; width: 0; height: 1em;
-    }
-    .ctree > li::before {display: none !important;}
-    .tnode {
+        border-left: solid 1px {_C['border']}; width: 0; height: 1em;
+    }}
+    .ctree > li::before {{display: none !important;}}
+    .tnode {{
         display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
         min-width: 86px; padding: 0.55rem 0.7rem; border-radius: 10px;
-        background: #ffffff; border: 1px solid #ececec; box-shadow: 0 1px 4px rgba(31,52,96,0.05);
+        background: {_C['surface']}; border: 1px solid {_C['border']}; box-shadow: 0 1px 4px {_C['shadow']};
         position: relative;
-    }
-    .tnode::before {
-        outline: solid 1px #d7d7da; content: ""; height: 1em; left: 50%;
+    }}
+    .tnode::before {{
+        outline: solid 1px {_C['border']}; content: ""; height: 1em; left: 50%;
         position: absolute; top: -1em; width: 0;
-    }
-    .ctree > li > .tnode::before {display: none;}
-    .tnode-icon {font-size: 1.05rem; line-height: 1; margin-bottom: 0.3rem;}
-    .tnode-val {font-weight: 700; font-size: 1.25rem; color: #1a1a1a; line-height: 1.1;}
-    .tnode-label {font-size: 0.72rem; color: #9b9b9b; margin-top: 0.15rem; white-space: nowrap;}
-    .tnode-root {border-color: #d8d8d8; box-shadow: 0 2px 8px rgba(31,52,96,0.08);}
-    .tnode-nn {background: #eef5ff; border-color: #d7e8fb;}
-    .tnode-nn .tnode-val {color: #1b63c4;}
-    .tnode-vn {background: #fff1ef; border-color: #fbdbd5;}
-    .tnode-vn .tnode-val {color: #c8372a;}
-    .ctree-title {font-size: 0.85rem; font-weight: 650; color: #6b6b6b; margin-bottom: 0.3rem;}
+    }}
+    .ctree > li > .tnode::before {{display: none;}}
+    .tnode-icon {{font-size: 1.05rem; line-height: 1; margin-bottom: 0.3rem;}}
+    .tnode-val {{font-weight: 700; font-size: 1.25rem; color: {_C['text']}; line-height: 1.1;}}
+    .tnode-label {{font-size: 0.72rem; color: {_C['muted']}; margin-top: 0.15rem; white-space: nowrap;}}
+    .tnode-root {{border-color: {_C['muted']}; box-shadow: 0 2px 8px {_C['shadow']};}}
+    .tnode-nn {{background: {_C['nn_bg']}; border-color: {_C['nn_border']};}}
+    .tnode-nn .tnode-val {{color: {_C['nn_val']};}}
+    .tnode-vn {{background: {_C['vn_bg']}; border-color: {_C['vn_border']};}}
+    .tnode-vn .tnode-val {{color: {_C['vn_val']};}}
+    .ctree-title {{font-size: 0.85rem; font-weight: 650; color: {_C['muted']}; margin-bottom: 0.3rem;}}
 </style>
 """, unsafe_allow_html=True)
 
-# Minimalist welcome header — lời chào + đồng hồ tính theo GIỜ MÁY NGƯỜI DÙNG (JS)
-# Splash chào mừng hoạt hình — chỉ hiện 1 lần mỗi phiên tab (sessionStorage), click để bỏ qua
-#
-# Gộp chung splash + đồng hồ/lời chào + trang trí (mây/chim/hoa) vào MỘT
-# components.html duy nhất (thay vì 3 iframe riêng) — giảm số iframe được tạo
-# lại ở MỖI lần rerun (mỗi lần bấm nút) để đỡ giật/khựng. Vẫn gọi KHÔNG ĐIỀU
-# KIỆN như trước (không dùng session_state để "chỉ chạy 1 lần" — cách đó khiến
-# Streamlit xóa mất phần tử đã tạo ở những lần rerun sau, đã thử và bị lỗi).
-_splash_html = """
-<script>
-(function(){
-    var doc = window.parent.document;
-    var win = window.parent;
-    try {
-        if (win.sessionStorage.getItem('hp_splash_shown')) return;
-        win.sessionStorage.setItem('hp_splash_shown', '1');
-    } catch(e) { return; }
+# Nút đổi giao diện sáng/tối (góc trên bên phải)
+_th_l, _th_r = st.columns([10, 1])
+with _th_r:
+    if st.button("🌙" if not _dm else "☀️", key="theme_toggle", help="Đổi giao diện sáng/tối"):
+        st.session_state.dark_mode = not _dm
+        st.rerun()
 
-    var old = doc.getElementById('splash-overlay'); if (old) old.remove();
-    var oldCss = doc.getElementById('splash-style'); if (oldCss) oldCss.remove();
-
-    // Lời chào — chỉ Tiếng Việt
-    var GREETINGS = ["Xin chào"];
-
-    var css = doc.createElement('style');
-    css.id = 'splash-style';
-    css.textContent = `
-      #splash-overlay{position:fixed;inset:0;z-index:999999;overflow:hidden;cursor:pointer;
-        display:flex;align-items:center;justify-content:center;
-        background:#8a9bb8;
-        transition:opacity .8s ease;}
-      #splash-overlay.splash-exit{opacity:0;pointer-events:none;}
-      /* Nền gradient nhiều màu chuyển động mượt (kiểu iOS) */
-      #splash-overlay .mesh{position:absolute;inset:-40%;filter:blur(70px);opacity:.9;
-        background:
-          radial-gradient(closest-side at 30% 35%, #f0c86e, transparent 70%),
-          radial-gradient(closest-side at 70% 30%, #5b8def, transparent 70%),
-          radial-gradient(closest-side at 65% 70%, #7fb2c8, transparent 70%),
-          radial-gradient(closest-side at 30% 72%, #e9a13b, transparent 70%),
-          radial-gradient(closest-side at 50% 50%, #8bb0d0, transparent 75%);
-        animation:mesh-move 14s ease-in-out infinite alternate;}
-      @keyframes mesh-move{
-        0%{transform:translate(0,0) rotate(0deg) scale(1.05);}
-        50%{transform:translate(3%,-3%) rotate(8deg) scale(1.18);}
-        100%{transform:translate(-3%,3%) rotate(-6deg) scale(1.08);}
-      }
-      #splash-hello{position:relative;z-index:2;
-        font-family:'Segoe Script','Brush Script MT','Snell Roundhand',cursive;
-        font-size:clamp(3rem,9vw,5.4rem);font-weight:400;letter-spacing:0.01em;
-        color:#ffffff;text-align:center;padding:0 6vw;
-        text-shadow:0 2px 18px rgba(0,0,0,.18);white-space:pre;}
-      #splash-hello .ch{opacity:0;display:inline-block;
-        animation:ch-in .5s ease forwards;}
-      @keyframes ch-in{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
-      #splash-hello.fade-out{animation:hello-out .5s ease forwards;}
-      @keyframes hello-out{from{opacity:1;}to{opacity:0;transform:translateY(-12px);}}
-    `;
-    doc.head.appendChild(css);
-
-    var s = doc.createElement('div');
-    s.id = 'splash-overlay';
-    s.innerHTML = '<div class="mesh"></div><div id="splash-hello"></div>';
-    doc.body.appendChild(s);
-
-    var el = s.querySelector('#splash-hello');
-    var i = 0, timers = [];
-    var STEP = 160;   // thời gian mỗi ký tự hiện ra (ms) — chạy chậm rãi
-    var HOLD = 1100;  // giữ nguyên chữ sau khi gõ xong (ms)
-
-    function showNext(){
-        if (i >= GREETINGS.length){ dismiss(); return; }
-        var word = GREETINGS[i]; i++;
-        // Dựng từng ký tự, mỗi ký tự hiện lần lượt cách nhau STEP ms
-        el.className = '';
-        el.innerHTML = '';
-        for (var k = 0; k < word.length; k++){
-            var span = doc.createElement('span');
-            span.className = 'ch';
-            span.textContent = word[k];
-            span.style.animationDelay = (k * STEP) + 'ms';
-            el.appendChild(span);
-        }
-        var typeDur = word.length * STEP;
-        // Gõ xong → giữ → fade ra → chữ tiếp theo
-        timers.push(win.setTimeout(function(){
-            el.classList.add('fade-out');
-            timers.push(win.setTimeout(showNext, 350));
-        }, typeDur + HOLD));
-    }
-    showNext();
-
-    function dismiss(){
-        timers.forEach(function(t){ win.clearTimeout(t); });
-        s.classList.add('splash-exit');
-        win.setTimeout(function(){ s.remove(); var c = doc.getElementById('splash-style'); if (c) c.remove(); }, 750);
-    }
-    s.addEventListener('click', dismiss);  // chạm để bỏ qua
-    // Chốt an toàn: ép gỡ overlay sau 12s dù có sự cố (tránh chặn thao tác)
-    win.setTimeout(function(){
-        var sp = doc.getElementById('splash-overlay'); if (sp) sp.remove();
-        var c = doc.getElementById('splash-style'); if (c) c.remove();
-    }, 12000);
-})();
-</script>
-"""
-
-# ---- Nền đổi theo thời gian trong ngày (sáng / trưa-chiều / tối) — theo giờ máy người dùng ----
-import base64 as _b64
-
-def _fuji_svg(p):
-    """Tạo SVG cảnh núi Phú Sĩ với bảng màu p."""
-    stars = ""
-    if p.get("stars"):
-        import random as _rd
-        _rd.seed(7)  # cố định vị trí sao để base64 không đổi giữa các rerun
-        dots = "".join(
-            '<circle cx="%d" cy="%d" r="%.1f" fill="#ffffff" opacity="%.2f"/>'
-            % (_rd.randint(30, 1410), _rd.randint(20, 260), _rd.uniform(1.2, 2.6), _rd.uniform(0.4, 0.95))
-            for _ in range(26)
-        )
-        stars = '<g>' + dots + '</g>'
-    return (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">'
-        '<defs>'
-        '<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">'
-        f'<stop offset="0%" stop-color="{p["sky0"]}"/><stop offset="50%" stop-color="{p["sky1"]}"/><stop offset="100%" stop-color="{p["sky2"]}"/>'
-        '</linearGradient>'
-        '<linearGradient id="mtn" x1="0" y1="0" x2="0" y2="1">'
-        f'<stop offset="0%" stop-color="{p["mtn0"]}"/><stop offset="100%" stop-color="{p["mtn1"]}"/>'
-        '</linearGradient>'
-        '<linearGradient id="mtn2" x1="0" y1="0" x2="0" y2="1">'
-        f'<stop offset="0%" stop-color="{p["far0"]}"/><stop offset="100%" stop-color="{p["far1"]}"/>'
-        '</linearGradient>'
-        '<linearGradient id="water" x1="0" y1="0" x2="0" y2="1">'
-        f'<stop offset="0%" stop-color="{p["water0"]}"/><stop offset="100%" stop-color="{p["water1"]}"/>'
-        '</linearGradient>'
-        '</defs>'
-        '<rect width="1440" height="900" fill="url(#sky)"/>'
-        + stars +
-        f'<circle cx="{p["orb_x"]}" cy="{p["orb_y"]}" r="{p["orb_r"] + 40}" fill="{p["orb"]}" opacity="0.18"/>'
-        f'<circle cx="{p["orb_x"]}" cy="{p["orb_y"]}" r="{p["orb_r"]}" fill="{p["orb"]}" opacity="{p["orb_op"]}"/>'
-        '<path d="M0 560 Q 240 500 480 545 T 960 530 T 1440 555 L1440 900 L0 900 Z" fill="url(#mtn2)" opacity="0.55"/>'
-        # Núi Phú Sĩ (phóng to, lệch trái)
-        '<path d="M-40 630 L300 250 L640 630 Z" fill="url(#mtn)"/>'
-        f'<path d="M216 361 L300 250 L391 367 Q 352 344 326 370 Q 300 344 274 370 Q 248 348 216 361 Z" fill="{p["snow"]}"/>'
-        f'<path d="M261 419 L281 406 L271 452 L255 458 Z" fill="{p["snow"]}" opacity="0.9"/>'
-        f'<path d="M333 416 L320 403 L336 448 L352 455 Z" fill="{p["snow"]}" opacity="0.9"/>'
-        f'<ellipse cx="300" cy="638" rx="360" ry="26" fill="#ffffff" opacity="{p["mist_op"]}"/>'
-        # Mặt hồ tiền cảnh
-        '<path d="M0 660 Q 360 630 720 655 T 1440 660 L1440 900 L0 900 Z" fill="url(#water)"/>'
-        '<path d="M0 660 Q 360 630 720 655 T 1440 660" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.35"/>'
-        # Bóng núi phản chiếu (lộn ngược, nén dọc, mờ)
-        '<path d="M-40 672 L300 852 L640 672 Z" fill="url(#mtn)" opacity="0.22"/>'
-        f'<path d="M240 726 L300 800 L364 730 Q 336 745 322 728 Q 300 746 282 728 Q 262 740 240 726 Z" fill="{p["snow"]}" opacity="0.14"/>'
-        # Bóng trăng/mặt trời lung linh trên nước
-        f'<ellipse cx="{p["orb_x"]}" cy="705" rx="72" ry="13" fill="{p["orb"]}" opacity="0.3"/>'
-        f'<ellipse cx="{p["orb_x"] - 12}" cy="735" rx="46" ry="8" fill="{p["orb"]}" opacity="0.18"/>'
-        f'<ellipse cx="{p["orb_x"] + 10}" cy="762" rx="28" ry="5" fill="{p["orb"]}" opacity="0.1"/>'
-        # Gợn sóng nhẹ
-        '<path d="M120 730 q 45 -8 90 0" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.14" stroke-linecap="round"/>'
-        '<path d="M540 780 q 55 -9 110 0" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.12" stroke-linecap="round"/>'
-        '<path d="M820 720 q 40 -7 80 0" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.14" stroke-linecap="round"/>'
-        '<path d="M300 830 q 60 -9 120 0" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.1" stroke-linecap="round"/>'
-        '<path d="M1150 800 q 50 -8 100 0" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.12" stroke-linecap="round"/>'
-        # Cánh hoa trôi trên mặt nước
-        f'<g opacity="{p["blossom_op"]}" fill="{p["blossom"]}">'
-        '<circle cx="180" cy="700" r="7"/><circle cx="205" cy="690" r="6"/><circle cx="195" cy="712" r="6"/>'
-        '<circle cx="1260" cy="680" r="7"/><circle cx="1285" cy="695" r="6"/><circle cx="1270" cy="668" r="5"/>'
-        '</g></svg>'
-    )
-
-_BG_PALETTES = {
-    # Sáng (5h–11h): bình minh hồng cam, mặt trời thấp ấm áp, hồ ánh cam-xanh
-    "morning": dict(sky0="#bfe3f5", sky1="#ffd9c2", sky2="#ffc9a3",
-                    orb="#ffb56b", orb_x=1080, orb_y=380, orb_r=90, orb_op="0.85",
-                    mtn0="#8fa8c8", mtn1="#7089ad", far0="#e0c4d0", far1="#c9aec2",
-                    snow="#fff6ee", mist_op="0.45",
-                    water0="#ffd0a8", water1="#8fb0d0",
-                    blossom="#f2a9c4", blossom_op="0.55"),
-    # Trưa/chiều (11h–17h): trời xanh trong, nắng cao rực rỡ, hồ xanh biếc
-    "noon": dict(sky0="#9fd4f5", sky1="#c9e8fa", sky2="#eaf6fd",
-                 orb="#fff3b0", orb_x=1080, orb_y=160, orb_r=80, orb_op="0.9",
-                 mtn0="#7f9cc0", mtn1="#5f7fa8", far0="#b8cfe6", far1="#9fbdd9",
-                 snow="#fbfdff", mist_op="0.45",
-                 water0="#bfe0f5", water1="#7fb4dd",
-                 blossom="#f2c9d8", blossom_op="0.5"),
-    # Tối (17h–5h): trời tím đậm, trăng vàng và sao, hồ đêm thẫm — đồng bộ với splash đêm
-    "night": dict(sky0="#16213e", sky1="#3a3f66", sky2="#6b5b8a",
-                  orb="#ffe9a8", orb_x=1080, orb_y=200, orb_r=70, orb_op="0.9",
-                  mtn0="#3d4a6b", mtn1="#2c3854", far0="#4a5680", far1="#3d4a6b",
-                  snow="#dfe6f5", mist_op="0.16",
-                  water0="#3b3f66", water1="#1d2440",
-                  blossom="#a86f8a", blossom_op="0.35", stars=True),
-}
-
-@st.cache_resource
-def _build_bg_switcher_js():
-    """Sinh 3 cảnh nền + đóng gói JS — cache để không chạy lại ở mỗi rerun."""
-    b64 = {k: _b64.b64encode(_fuji_svg(v).encode()).decode() for k, v in _BG_PALETTES.items()}
-    js = """
-<script>
-(function(){
-    var doc = window.parent.document;
-    var BG = {
-        morning: "__B64_MORNING__",
-        noon: "__B64_NOON__",
-        night: "__B64_NIGHT__"
-    };
-    function pick(){
-        var h = new Date().getHours();
-        if (h >= 5 && h < 11) return 'morning';
-        if (h >= 11 && h < 17) return 'noon';
-        return 'night';
-    }
-    function apply(){
-        var app = doc.querySelector('.stApp');
-        if (!app) { setTimeout(apply, 300); return; }
-        // Dọn splash bị kẹt (nếu có) — chạy mỗi lần rerun nên luôn tự sửa
-        var sp = doc.getElementById('splash-overlay');
-        if (sp && !sp.__born) { sp.__born = Date.now(); }
-        if (sp && Date.now() - sp.__born > 8000) { sp.remove(); }
-        var k = pick();
-        // Trạng thái lưu trên DOM (không phải biến iframe) → rerun không re-apply, không flash
-        if (app.dataset.hpBg === k) return;
-        app.dataset.hpBg = k;
-        app.style.transition = 'background 1.2s ease';
-        app.style.background = 'url("data:image/svg+xml;base64,' + BG[k] + '") center 35% / cover no-repeat fixed';
-    }
-    apply();
-    setInterval(apply, 60000); // tự chuyển cảnh khi bước sang khung giờ khác
-})();
-</script>
-"""
-    return (js.replace("__B64_MORNING__", b64["morning"])
-              .replace("__B64_NOON__", b64["noon"])
-              .replace("__B64_NIGHT__", b64["night"]))
-
-_bg_switcher_html = _build_bg_switcher_js()
-
-_clock_html = """
+# Lời chào + đồng hồ (giờ máy người dùng, qua JS) — nằm trong iframe riêng
+# (components.html) nên dùng style inline, không dùng được class CSS ở trên.
+_clock_html = f"""
 <div style="
     display:flex; align-items:center; justify-content:space-between;
     flex-wrap:wrap; gap:8px;
     font-family:'Source Sans Pro','Segoe UI',Arial,sans-serif;
-    padding-bottom:1.5rem; border-bottom:1px solid #ececec;
+    padding-bottom:1.2rem; border-bottom:1px solid {_C['border']};
 ">
-    <div style="font-size:1.75rem; font-weight:650; color:#1a1a1a; letter-spacing:-0.02em;">
+    <div style="font-size:1.4rem; font-weight:650; color:{_C['text']}; letter-spacing:-0.02em;">
         <span id="greet-emoji" style="margin-right:6px;"></span><span id="greet-text"></span>, Ta Chau
     </div>
-    <div id="date-wrap" style="font-size:0.85rem; color:#9b9b9b; font-weight:500; font-variant-numeric:tabular-nums;">
-        <span id="date-text"></span> · <span id="live-clock" style="color:#6b6b6b; font-weight:600;"></span>
+    <div style="font-size:0.85rem; color:{_C['muted']}; font-weight:500; font-variant-numeric:tabular-nums;">
+        <span id="date-text"></span> · <span id="live-clock" style="color:{_C['text']}; font-weight:600;"></span>
     </div>
 </div>
 <script>
     var WD = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-    function pad(n){ return String(n).padStart(2,'0'); }
-    function update(){
+    function pad(n){{ return String(n).padStart(2,'0'); }}
+    function update(){{
         var d = new Date();
         var h = d.getHours();
-        // Time slots: 0-12 morning, 12-18 afternoon, 18-24 evening
         var greet, emoji;
-        if (h < 12) { greet = "Good morning"; emoji = "☀️"; }
-        else if (h < 18) { greet = "Good afternoon"; emoji = "🌆"; }
-        else { greet = "Good evening"; emoji = "🌙"; }
+        if (h < 12) {{ greet = "Good morning"; emoji = "☀️"; }}
+        else if (h < 18) {{ greet = "Good afternoon"; emoji = "🌤️"; }}
+        else {{ greet = "Good evening"; emoji = "🌙"; }}
         var ge = document.getElementById('greet-emoji');
         var gt = document.getElementById('greet-text');
         var dt = document.getElementById('date-text');
@@ -2018,91 +1787,12 @@ _clock_html = """
         if (gt) gt.textContent = greet;
         if (dt) dt.textContent = WD[d.getDay()] + ", " + pad(d.getDate()) + "/" + pad(d.getMonth()+1) + "/" + d.getFullYear();
         if (lc) lc.textContent = pad(h) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
-        // Khung nội dung nền trắng đục → chữ đậm cố định, dễ đọc mọi khung giờ
-        var wrap = document.getElementById('date-wrap');
-        if (wrap && lc) {
-            wrap.style.color = '#5a5a6e';
-            lc.style.color = '#33334a';
-        }
-    }
+    }}
     setInterval(update, 1000);
     update();
 </script>
 """
-
-# Hiệu ứng trang trí: hoa anh đào rơi + mây trôi — chèn NGOÀI khung (sau khung che)
-_deco_html = """
-<script>
-(function(){
-    var doc = window.parent.document;
-    // Nếu lớp trang trí đã tồn tại thì GIỮ NGUYÊN (tránh mây/chim giật lại từ đầu mỗi rerun)
-    if (doc.getElementById('deco-layer-outer')) return;
-
-    // CSS
-    var css = doc.createElement('style');
-    css.id = 'deco-style';
-    css.textContent = `
-      #deco-layer-outer{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
-      #deco-layer-outer .cloud{position:fixed;font-size:2.8rem;opacity:.5;animation:drift linear infinite;}
-      @keyframes drift{from{transform:translateX(-140px);}to{transform:translateX(112vw);}}
-      #deco-layer-outer .petal{position:fixed;top:-40px;font-size:1.1rem;animation:fall linear infinite;}
-      @keyframes fall{0%{transform:translateY(-40px) translateX(0) rotate(0);opacity:0;}12%{opacity:.85;}100%{transform:translateY(106vh) translateX(50px) rotate(360deg);opacity:.65;}}
-      #deco-layer-outer .bird{position:fixed;opacity:.6;animation:flyby linear infinite;}
-      @keyframes flyby{from{transform:translateX(-90px) translateY(0);}50%{transform:translateX(50vw) translateY(-22px);}to{transform:translateX(112vw) translateY(8px);}}
-      #deco-layer-outer .bird svg{overflow:visible;display:block;animation:bob 1.1s ease-in-out infinite alternate;}
-      @keyframes bob{from{transform:translateY(-3px);}to{transform:translateY(3px);}}
-      #deco-layer-outer .bwing{transform-box:fill-box;transform-origin:88% 92%;
-        animation:flap .42s ease-in-out infinite alternate;}
-      #deco-layer-outer .bwing.back{animation-delay:.21s;}
-      @keyframes flap{from{transform:rotate(-38deg);}to{transform:rotate(26deg);}}
-    `;
-    doc.head.appendChild(css);
-
-    // Chim SVG vỗ cánh (thân + đầu + mỏ + 2 cánh lệch pha)
-    function birdSvg(w){
-        return '<svg viewBox="0 0 64 44" width="' + w + '" xmlns="http://www.w3.org/2000/svg">' +
-            '<path class="bwing back" d="M30 23 Q 40 4 54 8 Q 42 16 31 27 Z" fill="#e8b3c0"/>' +
-            '<path d="M10 24 L23 20 L23 28 Z" fill="#c76f88"/>' +
-            '<ellipse cx="33" cy="24" rx="12" ry="8.5" fill="#d98a9e"/>' +
-            '<circle cx="46" cy="17" r="6.5" fill="#d98a9e"/>' +
-            '<path d="M52 15 L59 17.5 L52 20 Z" fill="#f0a25f"/>' +
-            '<circle cx="48" cy="16" r="1.4" fill="#4a2f38"/>' +
-            '<path class="bwing" d="M33 22 Q 22 2 8 6 Q 20 15 34 26 Z" fill="#c76f88"/>' +
-            '</svg>';
-    }
-
-    // Lớp trang trí
-    var d = doc.createElement('div');
-    d.id = 'deco-layer-outer';
-    d.innerHTML = `
-      <div class="cloud" style="top:7%; left:0; animation-duration:52s;">☁️</div>
-      <div class="cloud" style="top:15%; left:0; animation-duration:70s; animation-delay:9s; font-size:2rem;">☁️</div>
-      <div class="cloud" style="top:4%; left:0; animation-duration:84s; animation-delay:22s; font-size:2.3rem; opacity:.4;">☁️</div>
-      <div class="bird" style="top:21%; animation-duration:38s; animation-delay:6s;">` + birdSvg(44) + `</div>
-      <div class="bird" style="top:25%; animation-duration:46s; animation-delay:20s; opacity:.45;">` + birdSvg(30) + `</div>
-      <div class="bird" style="top:12%; animation-duration:42s; animation-delay:33s; opacity:.5;">` + birdSvg(36) + `</div>
-      <div class="petal" style="left:3%; animation-duration:12s; animation-delay:0s;">🌸</div>
-      <div class="petal" style="left:8%; animation-duration:15s; animation-delay:3s;">🌸</div>
-      <div class="petal" style="left:13%; animation-duration:10s; animation-delay:6s; font-size:.9rem;">🌸</div>
-      <div class="petal" style="left:5%; animation-duration:17s; animation-delay:9s; font-size:.8rem;">🌸</div>
-      <div class="petal" style="left:83%; animation-duration:13s; animation-delay:1s;">🌸</div>
-      <div class="petal" style="left:89%; animation-duration:16s; animation-delay:4s;">🌸</div>
-      <div class="petal" style="left:94%; animation-duration:11s; animation-delay:7s; font-size:.9rem;">🌸</div>
-      <div class="petal" style="left:86%; animation-duration:18s; animation-delay:10s; font-size:.8rem;">🌸</div>
-    `;
-    // Chèn làm CON ĐẦU TIÊN của .stApp → nằm trên nền Phú Sĩ, dưới khung nội dung (khung đặc che)
-    var app = doc.querySelector('.stApp') || doc.body;
-    app.insertBefore(d, app.firstChild);
-})();
-</script>
-"""
-
-# Gộp cả 4 mảnh (splash + đổi nền + đồng hồ/lời chào + trang trí) vào MỘT
-# iframe duy nhất — trước đây là 4 iframe riêng, mỗi cái đều bị tạo lại ở
-# MỌI lần rerun (mỗi lần bấm nút), tốn thời gian tải + chạy JS lặp lại không
-# cần thiết. Gộp lại giúp giảm hẳn số iframe/khối lượng dữ liệu gửi đi mỗi
-# lần thao tác, đỡ giật hơn khi chuyển màn hình.
-components.html(_splash_html + _bg_switcher_html + _clock_html + _deco_html, height=64)
+components.html(_clock_html, height=64)
 
 # Menu selection (session state)
 if "menu" not in st.session_state:
