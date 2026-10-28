@@ -1670,6 +1670,12 @@ st.markdown(f"""
         border-radius: 8px !important; border-color: {_C['border']} !important;
         background: {_C['input_bg']} !important; color: {_C['text']} !important;
     }}
+    [data-testid="stTextInputRootElement"] {{
+        background: {_C['input_bg']} !important; border-color: {_C['border']} !important;
+    }}
+    [data-testid="stTextInputRootElement"] button {{
+        background: transparent !important; color: {_C['muted']} !important;
+    }}
     .stButton button, button[data-testid="stBaseButton-secondary"] {{
         border-radius: 8px; font-weight: 550; padding: 0.6rem;
         border: 1px solid {_C['border']}; transition: all 0.15s ease;
@@ -1743,15 +1749,26 @@ st.markdown(f"""
     .tnode-vn {{background: {_C['vn_bg']}; border-color: {_C['vn_border']};}}
     .tnode-vn .tnode-val {{color: {_C['vn_val']};}}
     .ctree-title {{font-size: 0.85rem; font-weight: 650; color: {_C['muted']}; margin-bottom: 0.3rem;}}
+
+    /* ── Thanh điều hướng bên trái (sidebar) — màu cố định, không đổi theo
+       sáng/tối, để làm điểm nhấn thương hiệu giống các dashboard hiện đại. */
+    [data-testid="stSidebar"] {{background: #241f5c !important;}}
+    .sb-logo {{color: #ffffff !important; font-size: 1.05rem; padding: 0.4rem 0 0.2rem;}}
+    .sb-divider {{border: none; border-top: 1px solid rgba(255,255,255,0.12); margin: 0.8rem 0;}}
+    [data-testid="stSidebar"] .stButton button {{
+        background: transparent !important; border: 1px solid transparent !important;
+        color: #cac4f2 !important; text-align: left !important; justify-content: flex-start !important;
+        font-weight: 500 !important;
+    }}
+    [data-testid="stSidebar"] .stButton button:hover {{
+        background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.08) !important;
+    }}
+    [data-testid="stSidebar"] .stButton button[kind="primary"] {{
+        background: #4b45b5 !important; border-color: #4b45b5 !important; color: #ffffff !important;
+    }}
+    [data-testid="stSidebar"] .stButton button[kind="primary"]:hover {{background: #5a52c9 !important;}}
 </style>
 """, unsafe_allow_html=True)
-
-# Nút đổi giao diện sáng/tối (góc trên bên phải)
-_th_l, _th_r = st.columns([10, 1])
-with _th_r:
-    if st.button("🌙" if not _dm else "☀️", key="theme_toggle", help="Đổi giao diện sáng/tối"):
-        st.session_state.dark_mode = not _dm
-        st.rerun()
 
 # Lời chào + đồng hồ (giờ máy người dùng, qua JS) — nằm trong iframe riêng
 # (components.html) nên dùng style inline, không dùng được class CSS ở trên.
@@ -1800,6 +1817,30 @@ if "menu" not in st.session_state:
 
 def go_menu(name):
     st.session_state.menu = name
+
+# ── Thanh điều hướng cố định bên trái (sidebar) ────────────────────────────
+_NAV_ITEMS = [
+    (None, "🏠", "Trang chủ"),
+    ("daily", "📋", "Hồ sơ hàng ngày"),
+    ("regcard", "🖨️", "Regcard PDF"),
+    ("recon", "🔍", "Đối chiếu lưu trú"),
+]
+_RECON_GROUP = {"recon", "recon_person", "recon_quick", "recon_room", "counter"}
+
+with st.sidebar:
+    st.markdown('<div class="sb-logo">🏨 <b>Hotel Processor</b></div>', unsafe_allow_html=True)
+    st.write("")
+    for _key, _icon, _label in _NAV_ITEMS:
+        _active = (st.session_state.menu == _key) or (_key == "recon" and st.session_state.menu in _RECON_GROUP)
+        st.button(f"{_icon}  {_label}", key=f"nav_{_key or 'home'}",
+                  type="primary" if _active else "secondary",
+                  use_container_width=True, on_click=go_menu, args=(_key,))
+    st.write("")
+    st.markdown('<hr class="sb-divider">', unsafe_allow_html=True)
+    if st.button(("🌙  Chế độ tối" if not _dm else "☀️  Chế độ sáng"),
+                 key="theme_toggle_sb", use_container_width=True):
+        st.session_state.dark_mode = not _dm
+        st.rerun()
 
 # ── Menu landing screen ───────────────────────────────────────────────────
 
