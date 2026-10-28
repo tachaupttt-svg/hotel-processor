@@ -1232,7 +1232,7 @@ def _norm_room(r):
 # lưu trú hiện tại, còn 19/29 người cũ + 3 người mới.)
 DEFAULT_EXCEPTION_LIST = [
     {'Họ tên': 'NOVITSKAIA ZHANNA', 'Số hộ chiếu': '669065213', 'Quốc tịch': 'Liên bang Nga', 'Số phòng': '522'},
-    {'Họ tên': 'WAHBA MICHAEL TALATT SHEHA', 'Số hộ chiếu': 'A39295537', 'Quốc tịch': 'Ai Cập', 'Số phòng': '534'},
+    {'Họ tên': 'WAHBA MICHAEL TALATT SHEHATA', 'Số hộ chiếu': 'A39295537', 'Quốc tịch': 'Ai Cập', 'Số phòng': '534'},
     {'Họ tên': 'DAULETOVA ZHANEL', 'Số hộ chiếu': 'N20095654', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '514'},
     {'Họ tên': 'ERSOZ FURKAN', 'Số hộ chiếu': 'U26395931', 'Quốc tịch': 'Thổ Nhĩ Kỳ', 'Số phòng': '514'},
     {'Họ tên': 'KOROTKOVA YELENA ( ENT ĐK KÉ 519)', 'Số hộ chiếu': 'N13835191', 'Quốc tịch': 'Ka-dắc-xtan', 'Số phòng': '519'},
