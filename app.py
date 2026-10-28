@@ -1833,21 +1833,28 @@ st.markdown(f"""
 
     /* ── Thanh điều hướng bên trái (sidebar) — màu cố định, không đổi theo
        sáng/tối, để làm điểm nhấn thương hiệu giống các dashboard hiện đại. */
-    [data-testid="stSidebar"] {{background: #241f5c !important;}}
-    .sb-logo {{color: #ffffff !important; font-size: 1.05rem; padding: 0.4rem 0 0.2rem;}}
-    .sb-divider {{border: none; border-top: 1px solid rgba(255,255,255,0.12); margin: 0.8rem 0;}}
+    [data-testid="stSidebar"] {{background: #2b2768 !important;}}
+    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{gap: 0.5rem;}}
+    .sb-logo {{
+        color: #ffffff !important; font-size: 1.1rem; padding: 0.3rem 0 0.9rem;
+        white-space: nowrap;
+    }}
+    .sb-divider {{border: none; border-top: 1px solid rgba(255,255,255,0.18); margin: 0.6rem 0;}}
     [data-testid="stSidebar"] .stButton button {{
         background: transparent !important; border: 1px solid transparent !important;
-        color: #cac4f2 !important; text-align: left !important; justify-content: flex-start !important;
-        font-weight: 500 !important;
+        color: #f1effc !important; text-align: left !important; justify-content: flex-start !important;
+        font-weight: 600 !important; font-size: 1rem !important;
+        padding: 0.7rem 0.9rem !important;
     }}
+    [data-testid="stSidebar"] .stButton button p {{color: #f1effc !important; font-size: 1rem !important;}}
     [data-testid="stSidebar"] .stButton button:hover {{
-        background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.08) !important;
+        background: rgba(255,255,255,0.12) !important; border-color: rgba(255,255,255,0.12) !important;
     }}
     [data-testid="stSidebar"] .stButton button[kind="primary"] {{
-        background: #4b45b5 !important; border-color: #4b45b5 !important; color: #ffffff !important;
+        background: #5952d4 !important; border-color: #5952d4 !important; color: #ffffff !important;
     }}
-    [data-testid="stSidebar"] .stButton button[kind="primary"]:hover {{background: #5a52c9 !important;}}
+    [data-testid="stSidebar"] .stButton button[kind="primary"] p {{color: #ffffff !important;}}
+    [data-testid="stSidebar"] .stButton button[kind="primary"]:hover {{background: #6a62e8 !important;}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1903,20 +1910,18 @@ def go_menu(name):
 _NAV_ITEMS = [
     (None, "🏠", "Trang chủ"),
     ("daily", "📋", "Hồ sơ hàng ngày"),
-    ("regcard", "🖨️", "Regcard PDF"),
+    ("regcard", "📄", "Regcard PDF"),
     ("recon", "🔍", "Đối chiếu lưu trú"),
 ]
 _RECON_GROUP = {"recon", "recon_person", "recon_quick", "recon_room", "counter"}
 
 with st.sidebar:
-    st.markdown('<div class="sb-logo">🏨 <b>Hotel Processor</b></div>', unsafe_allow_html=True)
-    st.write("")
+    st.markdown('<div class="sb-logo"><b>🏢 Hotel Processor</b></div>', unsafe_allow_html=True)
     for _key, _icon, _label in _NAV_ITEMS:
         _active = (st.session_state.menu == _key) or (_key == "recon" and st.session_state.menu in _RECON_GROUP)
         st.button(f"{_icon}  {_label}", key=f"nav_{_key or 'home'}",
                   type="primary" if _active else "secondary",
                   use_container_width=True, on_click=go_menu, args=(_key,))
-    st.write("")
     st.markdown('<hr class="sb-divider">', unsafe_allow_html=True)
     if st.button(("🌙  Chế độ tối" if not _dm else "☀️  Chế độ sáng"),
                  key="theme_toggle_sb", use_container_width=True):
