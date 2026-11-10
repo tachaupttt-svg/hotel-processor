@@ -897,7 +897,9 @@ def _rc_nights(arr, dep):
 
 def build_group_regcard(grp_df, tmpl_bytes):
     """Vẽ 1 Registration Card for Group từ các dòng cùng 1 mã Group.
-    Trả về trang PDF đã merge. Bảng Kind of rooms để trống (điền tay)."""
+    Trả về (trang mẫu, trang overlay) CHƯA merge — gọi merge_page() sau khi
+    trang mẫu đã được thêm vào PdfWriter (pypdf 7+ không cho merge trên trang
+    chưa gắn writer). Bảng Kind of rooms để trống (điền tay)."""
     H = 841.0
     FONT = "Times-Roman"; SIZE = 11
     first = grp_df.iloc[0]
@@ -953,9 +955,7 @@ def build_group_regcard(grp_df, tmpl_bytes):
 
     base = PdfReader(io.BytesIO(tmpl_bytes))
     overlay = PdfReader(buf)
-    page = base.pages[0]
-    page.merge_page(overlay.pages[0])
-    return page
+    return base.pages[0], overlay.pages[0]
 
 
 def _fix_date(v):
@@ -1082,8 +1082,9 @@ def build_regcards(xlsx_bytes, only_main=True, selected_confs=None):
             if grp_tmpl is None:
                 grp_tmpl = load_group_template()
             gdf = df_group[df_group['_group_ff'] == gid]
-            page = build_group_regcard(gdf, grp_tmpl)
-            writer.add_page(page)
+            base_page, overlay_page = build_group_regcard(gdf, grp_tmpl)
+            page = writer.add_page(base_page)
+            page.merge_page(overlay_page)
             count += 1
             continue
 
@@ -1208,9 +1209,11 @@ def build_regcards(xlsx_bytes, only_main=True, selected_confs=None):
         c.save(); buf.seek(0)
         base = PdfReader(io.BytesIO(tmpl_bytes))
         overlay = PdfReader(buf)
-        page = base.pages[0]
+        # pypdf 7+ removed merge_page() on a page not yet attached to a
+        # writer — add it to the writer FIRST, then merge the overlay onto
+        # the writer's own copy of the page.
+        page = writer.add_page(base.pages[0])
         page.merge_page(overlay.pages[0])
-        writer.add_page(page)
         count += 1
     out = io.BytesIO()
     writer.write(out)
